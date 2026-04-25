@@ -1,0 +1,11 @@
+# Virtual environment
+.venv
+__pycache__/
+
+# Local
+test.py
+
+# Dataset
+dataset/raw/ctt_sis/*
+dataset/processed/*
+dataset/segmented/*
