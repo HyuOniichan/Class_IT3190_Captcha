@@ -1,3 +1,27 @@
+"""
+Training & evaluation pipeline for single-character CAPTCHA recognition.
+
+Accuracy metrics
+----------------
+Hệ thống sử dụng **hai cách tính accuracy** khác nhau:
+
+1. **Per-character accuracy** (character-level):
+   Tỉ lệ số ký tự đơn lẻ được phân loại đúng trên tổng số ký tự.
+   Mỗi sample trong dataset là một ảnh 28×28 đã segment chứa DUY NHẤT 1 ký tự,
+   nên metric này đo khả năng phân loại ký tự đơn của model.
+   → Dùng trong training loop (train_acc, val_acc) và hàm evaluate().
+
+2. **Per-image accuracy** (image-level / whole-CAPTCHA):
+   Một ảnh CAPTCHA gốc (vd: "0824.pbm") chỉ được tính là ĐÚNG khi TẤT CẢ
+   các ký tự trong ảnh đó đều được dự đoán chính xác.
+   Ví dụ: CAPTCHA "0824" mà model đoán "0B24" → sai (0% image-level),
+   dù 3/4 ký tự đúng (75% character-level).
+   → Dùng trong hàm full_evaluation() để đánh giá end-to-end.
+
+Lưu ý: Per-image accuracy luôn ≤ per-character accuracy, vì chỉ cần sai 1 ký tự
+là cả image bị tính sai. Với CAPTCHA 5 ký tự và char-acc = 95%, image-acc ≈ 0.95^5 ≈ 77%.
+"""
+
 import os
 import time
 import numpy as np
@@ -8,6 +32,7 @@ from sklearn.metrics import accuracy_score, classification_report
 
 from model.cnn import build_model
 from model.baseline import run_baselines
+from model.metrics import compute_image_accuracy
 from datalayer.build_dataset import INDEX_TO_CHAR
 
 
@@ -91,7 +116,12 @@ def train_model(
 # ──────────────────────────────────────────────
 
 def evaluate(model, loader, device, criterion=None):
-    """Return (loss, accuracy) on the given loader."""
+    """
+    Per-character evaluation: trả về (loss, accuracy) trên loader.
+
+    Mỗi sample trong loader là 1 ký tự đã segment (28×28).
+    accuracy = số ký tự đoán đúng / tổng số ký tự.
+    """
     if criterion is None:
         criterion = nn.CrossEntropyLoss()
 
@@ -113,10 +143,12 @@ def evaluate(model, loader, device, criterion=None):
     return running_loss / total, correct / total
 
 
-def full_evaluation(model, loader, device, num_classes):
+def full_evaluation(model, loader, device, num_classes, chars_per_image=4):
     """
-    Run a detailed evaluation: per-class classification report
-    with character-name labels.
+    Đánh giá chi tiết trên tập test, bao gồm:
+    - Per-character accuracy (từng ký tự)
+    - Per-image accuracy (toàn bộ CAPTCHA)
+    - Classification report per class
     """
     model.eval()
     all_preds = []
@@ -135,7 +167,11 @@ def full_evaluation(model, loader, device, num_classes):
     present = sorted(set(all_labels) | set(all_preds))
     target_names = [INDEX_TO_CHAR[i] for i in present]
 
-    acc = accuracy_score(all_labels, all_preds)
+    char_acc = accuracy_score(all_labels, all_preds)
+    img_acc, n_images = compute_image_accuracy(
+        all_preds, all_labels, chars_per_image
+    )
+
     report = classification_report(
         all_labels, all_preds,
         labels=present,
@@ -143,12 +179,16 @@ def full_evaluation(model, loader, device, num_classes):
         zero_division=0,
     )
 
-    print(f"\n{'='*50}")
-    print(f"CNN Test Accuracy: {acc:.4f}")
-    print(f"{'='*50}")
+    print(f"\n{'='*60}")
+    print(f"  Per-character accuracy : {char_acc:.4f}  "
+          f"({int(char_acc * len(all_labels))}/{len(all_labels)} chars)")
+    print(f"  Per-image accuracy     : {img_acc:.4f}  "
+          f"({int(img_acc * n_images)}/{n_images} images, "
+          f"{chars_per_image} chars/image)")
+    print(f"{'='*60}")
     print(report)
 
-    return acc, report
+    return char_acc, img_acc, report
 
 
 # ──────────────────────────────────────────────
@@ -226,7 +266,7 @@ def run_training_pipeline(
     print("\n" + "="*60)
     print("  STEP 5.4 — Validation")
     print("="*60)
-    acc, report = full_evaluation(model, test_loader, device, num_classes)
+    char_acc, img_acc, report = full_evaluation(model, test_loader, device, num_classes)
 
     # 5.5  Export
     print("\n" + "="*60)
@@ -235,7 +275,7 @@ def run_training_pipeline(
     model_path = os.path.join(output_dir, "captcha_cnn.pt")
     save_model(model, model_path)
 
-    return model, history, acc
+    return model, history, char_acc, img_acc
 
 
 if __name__ == "__main__":
