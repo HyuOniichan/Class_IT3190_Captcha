@@ -1,18 +1,19 @@
+import os
 import torch
 import torch.nn as nn
 
 
 class CaptchaCNN(nn.Module):
     """
-    Compact CNN for 28×28 single-channel character classification.
+    Compact CNN for 28x28 single-channel character classification.
 
     Architecture:
-        Conv(1→32, 3) → ReLU → MaxPool(2)
-        Conv(32→64, 3) → ReLU → MaxPool(2)
-        Conv(64→128, 3) → ReLU
-        Flatten → FC(512) → ReLU → Dropout → FC(num_classes)
+        Conv(1->32, 3) -> ReLU -> MaxPool(2)
+        Conv(32->64, 3) -> ReLU -> MaxPool(2)
+        Conv(64->128, 3) -> ReLU
+        Flatten -> FC(512) -> ReLU -> Dropout -> FC(num_classes)
 
-    After two 2×2 max-pools the spatial size is 5×5 (28→13→5 with valid padding
+    After two 2x2 max-pools the spatial size is 5x5 (28->13->5 with valid padding
     inside each pool window), giving 128*5*5 = 3200 features before the FC layers.
     """
 

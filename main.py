@@ -20,7 +20,7 @@ def main():
     args = parser.parse_args()
     
     # Test input
-    image_path ="evaluation/input.png"
+    image_path ="evaluation/input_3.png"
     my_model, my_device = load_inference_model()
     
     if args.stage == "0":

@@ -4,5 +4,8 @@ opencv-python
 numpy
 scikit-learn
 torch
+torchvision
 matplotlib
 seaborn
+fastapi
+uvicorn
