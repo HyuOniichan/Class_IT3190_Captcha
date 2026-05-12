@@ -18,9 +18,9 @@ def main():
     )
 
     args = parser.parse_args()
-    image_path ="evaluation/input_3.png"
-    #1,2 thì lỗi nhưng 3 thì ra kết quả đúng
-    #Cần thêm dữ liệu số dính vào nhau
+    
+    # Test input
+    image_path ="evaluation/input.png"
     my_model, my_device = load_inference_model()
     
     if args.stage == "0":

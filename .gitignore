@@ -9,3 +9,7 @@ test.py
 dataset/raw/ctt_sis/*
 dataset/processed/*
 dataset/segmented/*
+
+# Evaluation
+evaluation/confusion_matrix.png
+evaluation/sample_errors.png
