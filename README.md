@@ -75,7 +75,7 @@ Per-image accuracy luôn $\le$ per-character accuracy. Chi tiết xem docstring 
 
 + Note:
   + Dataset hiện tại đang tập trung vào các image đơn giản (chữ tách rời), nên dạng chữ tách rời xử lý ổn, và dataset mới như chữ dính liền chưa predict được là đúng...
-  + Sau khi xử lý xong 9 phần trong docs, sẽ quay lại nâng cấp dataset và build lại model sau
+  + Sau khi xử lý xong 9 phần trong docs [1], sẽ quay lại nâng cấp dataset và build lại model sau
 
 ### 12/5/2026 - Huy
 + Refactor code và Stage 8 
@@ -93,6 +93,18 @@ Per-image accuracy luôn $\le$ per-character accuracy. Chi tiết xem docstring 
     + Trả về predicted text
     + Response về cho giao diện hiển thị
 
+### 15/5/2026 - Huy
++ Giai đoạn 2 - Phần 1
++ Mới: Thêm folder `dataset_v2` gồm:
+  + `raw`: Sẽ được gen từ dataset nhóm 1 [2] bằng phương pháp thêm nhiễu (đi kèm folder `meta` để chia train/test)
+  + `kaggle_captcha`: Dataset nhóm 2 [3] (khoảng 1k image) 
++ -> Các stage sau có thể xử lý 1 trong 2 loại dataset, ưu tiên `kaggle_captcha`
++ Thêm file `datalayer/prepare_dataset_v2.py` -> Generate dataset mới từ dataset nhóm 1 -> Output: Folder `raw`
++ Note: Các stage sau nên follow theo filename với đuôi `_v2`. Ví dụ: Stage 2 ở folder `preprocess` -> Sẽ có file `general_preprocess_v2.py`
++ Note: Để ý cách chạy file, `python main.py --stage 1 --dataset 2` --> Thêm argument `--dataset 2` để chọn dataset nhóm 2.
+
+
 ## Ref
-+ Docs tổng: [ML 2025.2](https://docs.google.com/document/d/1g3PKIR1HZzpv9pxYNPCW63b5PtAFzVbOIYlK6n1ih1c/edit?usp=sharing)
-+ Dataset hiện tại: [CAPTCHA Dataset](https://cgi.cse.unsw.edu.au/~cs1511/17s1/assignments/captcha/captcha.html) 
++ [1] Docs tổng: [ML 2025.2](https://docs.google.com/document/d/1g3PKIR1HZzpv9pxYNPCW63b5PtAFzVbOIYlK6n1ih1c/edit?usp=sharing)
++ [2] Dataset nhóm 1: [CAPTCHA Dataset](https://cgi.cse.unsw.edu.au/~cs1511/17s1/assignments/captcha/captcha.html) 
++ [3] Dataset nhóm 2: [CAPTCHA Images](https://www.kaggle.com/datasets/fournierp/captcha-version-2-images)

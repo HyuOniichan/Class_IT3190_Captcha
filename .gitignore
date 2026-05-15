@@ -9,6 +9,8 @@ test.py
 dataset/raw/ctt_sis/*
 dataset/processed/*
 dataset/segmented/*
+dataset_v2/meta/*
+dataset_v2/raw/*
 
 # Evaluation
 evaluation/confusion_matrix.png

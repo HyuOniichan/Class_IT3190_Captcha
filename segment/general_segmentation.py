@@ -1,41 +1,40 @@
 import cv2
 import numpy as np
 import os
-import os
+from typing import List, Tuple
 
-# Ensure binary image
-def prepare_binary_image(processed_img):
+from segment.strategies import SegmentationStrategy, Dataset1SegmentationStrategy
+
+# NOTE: This file is kept for backward compatibility and to illustrate
+# how the old procedural functions map to the new strategy pattern.
+# For new development, prefer using the strategy classes directly from `strategies.py`.
+
+def prepare_binary_image(processed_img: np.ndarray) -> np.ndarray:
     """
     Ensure image is clean binary and correct foreground (white chars on black background)
     Fix common issues with PBM images.
     """
-    # 1. Convert to uint8
     if processed_img.dtype != np.uint8:
         processed_img = processed_img.astype(np.uint8)
 
-    # 2. Ensure binary
     unique_vals = np.unique(processed_img)
     if len(unique_vals) > 2:
         _, img = cv2.threshold(processed_img, 127, 255, cv2.THRESH_BINARY)
     else:
         img = processed_img.copy()
 
-    # 3. Ensure foreground (text) is white (255)
-    # Check if white pixel is more -> invert
     white_pixels = np.sum(img == 255)
     black_pixels = np.sum(img == 0)
 
     if white_pixels > black_pixels:
         img = cv2.bitwise_not(img)
 
-    # 4. Optional: remove border
     if img.shape[0] > 4 and img.shape[1] > 4:
         img = img[2:-2, 2:-2]
 
     return img
 
-# Contour Detection
-def find_contours(processed_img):
+def find_contours(processed_img: np.ndarray) -> List[np.ndarray]:
     """
     Detect character regions using OpenCV contours
     Input: processed (binary) image
@@ -48,9 +47,7 @@ def find_contours(processed_img):
     )
     return contours
 
-
-# Character Extraction
-def extract_characters(processed_img, contours, min_area=50):
+def extract_characters(processed_img: np.ndarray, contours: List[np.ndarray], min_area: int = 50) -> Tuple[List[np.ndarray], List[Tuple[int, int, int, int]]]:
     """
     Crop character regions from image
     Input: contours + processed image
@@ -62,7 +59,6 @@ def extract_characters(processed_img, contours, min_area=50):
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
 
-        # filter noise
         if w * h >= min_area:
             char_img = processed_img[y:y+h, x:x+w]
             characters.append(char_img)
@@ -70,15 +66,12 @@ def extract_characters(processed_img, contours, min_area=50):
 
     return characters, boxes
 
-
-# Character Sorting
-def sort_characters(characters, boxes):
+def sort_characters(characters: List[np.ndarray], boxes: List[Tuple[int, int, int, int]]) -> Tuple[List[np.ndarray], List[Tuple[int, int, int, int]]]:
     """
     Sort characters from left to right
     Input: character images + bounding boxes
-    Output: ordered character images
+    Output: ordered character images + bounding boxes
     """
-    # sort by x coordinate
     sorted_data = sorted(zip(characters, boxes), key=lambda b: b[1][0])
 
     sorted_chars = [item[0] for item in sorted_data]
@@ -86,9 +79,7 @@ def sort_characters(characters, boxes):
 
     return sorted_chars, sorted_boxes
 
-
-# Character Resizing
-def resize_characters(characters, size=(28, 28)):
+def resize_characters(characters: List[np.ndarray], size: Tuple[int, int] = (28, 28)) -> List[np.ndarray]:
     """
     Normalize character size
     Input: list of character images
@@ -102,42 +93,29 @@ def resize_characters(characters, size=(28, 28)):
 
     return resized_chars
 
-
-# Full Pipeline
-def segmentation_pipeline(processed_img):
+def segmentation_pipeline(processed_img: np.ndarray) -> List[np.ndarray]:
     """
-    Full segmentation pipeline:
-    1. Ensure binary image
-    2. Detect contours
-    3. Extract characters
-    4. Sort characters
-    5. Resize characters
+    Full segmentation pipeline using Dataset1SegmentationStrategy for backward compatibility.
     """
-    processed_img = prepare_binary_image(processed_img)
-    
-    contours = find_contours(processed_img)
-
-    chars, boxes = extract_characters(processed_img, contours)
-
-    chars, boxes = sort_characters(chars, boxes)
-
-    chars = resize_characters(chars)
-
-    return chars
+    strategy = Dataset1SegmentationStrategy()
+    return strategy.segment(processed_img)
 
 def run_segmentation_pipeline(
-    input_dir="dataset/processed/1k_pbm", 
-    output_dir="dataset/segmented/1k_pbm"
+    input_dir: str = "dataset/processed/1k_pbm", 
+    output_dir: str = "dataset/segmented/1k_pbm",
+    strategy: SegmentationStrategy = Dataset1SegmentationStrategy()
 ):
     os.makedirs(output_dir, exist_ok=True)
     for img_name in os.listdir(input_dir):
         img_path = os.path.join(input_dir, img_name)
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         
-        # The segmentation_pipeline returns a list of character images
-        segmented_chars = segmentation_pipeline(img)
+        if img is None:
+            print(f"Warning: Could not read image {img_path}. Skipping.")
+            continue
 
-        # Save each segmented character as a separate image
+        segmented_chars = strategy.segment(img)
+
         base_name = os.path.splitext(img_name)[0]
         for i, char_img in enumerate(segmented_chars):
             char_file_path = os.path.join(output_dir, f"{base_name}_char_{i}.png")
