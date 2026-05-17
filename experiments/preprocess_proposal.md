@@ -57,9 +57,10 @@
 
 * **Dataset:**
 
-  * Dataset 1: `dataset/raw/1k_pbm` (ảnh sạch)
-  * Dataset 2: `dataset_v2/raw` (ảnh nhiễu)
-* **Số lượng mẫu:** 200 ảnh / dataset
+  * Dataset 1: `dataset/raw/1k_pbm` (ảnh sạch, 4 ký tự)
+  * Dataset 2 (raw): `dataset_v2/raw` (ảnh nhiễu tổng hợp, 4 ký tự)
+  * Dataset 2 (Kaggle): `dataset_v2/kaggle_captcha` (ảnh Kaggle, 5 ký tự)
+* **Số lượng mẫu:** 200 ảnh / mỗi dataset
 * **Chỉ số chính:**
 
   * **Segmentation success rate:** tỉ lệ ảnh tách đúng 4 ký tự
@@ -73,9 +74,9 @@
 
 ## 4) Kết quả thực nghiệm
 
-### 4.1. Filter comparison
+### 4.1. Dataset 1 (ảnh sạch, 4 ký tự)
 
-**Dataset 1 (ảnh sạch):**
+**Filter comparison**
 
 | Method       | seg_success_rate |
 | ------------ | ---------------: |
@@ -86,22 +87,7 @@
 | bilateral_d5 |            0.995 |
 | bilateral_d7 |            0.995 |
 
-**Dataset 2 (ảnh nhiễu):**
-
-| Method        | seg_success_rate |
-| ------------- | ---------------: |
-| gaussian_k3   |             0.65 |
-| gaussian_k5   |             0.67 |
-| **median_k3** |        **0.745** |
-| median_k5     |             0.74 |
-| bilateral_d5  |            0.605 |
-| bilateral_d7  |             0.61 |
-
-**Nhận xét:** Median k=3 là tốt nhất cho dataset 2, Gaussian và Bilateral kém hơn.
-
-### 4.2. Morphology study
-
-**Dataset 1:**
+**Morphology study**
 
 | Method        | seg_success_rate |
 | ------------- | ---------------: |
@@ -112,35 +98,7 @@
 | open_close_k2 |             0.94 |
 | close_open_k2 |             0.98 |
 
-**Dataset 2:**
-
-| Method        | seg_success_rate |
-| ------------- | ---------------: |
-| **open_k2**   |         **0.76** |
-| open_k3       |            0.605 |
-| close_k2      |            0.595 |
-| close_k3      |            0.535 |
-| open_close_k2 |            0.745 |
-| close_open_k2 |            0.745 |
-
-**Nhận xét:** Opening k=2 là ổn định nhất, closing lớn (k=3) làm giảm mạnh hiệu năng.
-
-### 4.3. Line removal
-
-**Dataset 2:**
-
-| Method        | seg_success_rate |
-| ------------- | ---------------: |
-| line_morph_k3 |            0.195 |
-| line_morph_k5 |             0.01 |
-| line_hough_s1 |             0.62 |
-| line_hough_s2 |            0.605 |
-
-**Nhận xét:** Hough + inpaint tốt hơn morph line removal, nhưng vẫn thấp hơn combo filter + morph.
-
-### 4.4. Combo experiments
-
-**Dataset 1:**
+**Combo experiments**
 
 | Combo                            | seg_success_rate |
 | -------------------------------- | ---------------: |
@@ -148,29 +106,114 @@
 | combo_median_k3_open_k2_hough_s1 |            0.985 |
 | combo_gaussian_k3_open_k2        |            0.995 |
 
-**Dataset 2:**
+**Nhận xét:** Dataset 1 ổn định nhất với Gaussian/Bilateral. Median k=3 vẫn đạt mức tốt và chấp nhận được.
+
+### 4.2. Dataset 2 (raw, 4 ký tự)
+
+**Filter comparison**
+
+| Method        | seg_success_rate |
+| ------------- | ---------------: |
+| gaussian_k3   |            0.665 |
+| gaussian_k5   |            0.675 |
+| median_k3     |             0.74 |
+| **median_k5** |        **0.745** |
+| bilateral_d5  |            0.595 |
+| bilateral_d7  |            0.625 |
+
+**Morphology study**
+
+| Method        | seg_success_rate |
+| ------------- | ---------------: |
+| **open_k2**   |         **0.76** |
+| open_k3       |            0.595 |
+| close_k2      |            0.575 |
+| close_k3      |            0.535 |
+| open_close_k2 |             0.75 |
+| close_open_k2 |            0.745 |
+
+**Line removal**
+
+| Method        | seg_success_rate |
+| ------------- | ---------------: |
+| line_morph_k3 |              0.2 |
+| line_morph_k5 |             0.01 |
+| line_hough_s1 |             0.61 |
+| line_hough_s2 |            0.595 |
+
+**Combo experiments**
 
 | Combo                            | seg_success_rate |
 | -------------------------------- | ---------------: |
-| **combo_median_k3_open_k2**      |         **0.76** |
-| combo_median_k3_open_k2_hough_s1 |             0.76 |
-| combo_gaussian_k3_open_k2        |            0.695 |
+| **combo_median_k3_open_k2**      |        **0.755** |
+| combo_median_k3_open_k2_hough_s1 |            0.755 |
+| combo_gaussian_k3_open_k2        |             0.68 |
 
-**Nhận xét:** Combo median_k3 + open_k2 là tốt nhất trên dataset 2, giữ ổn định trên dataset 1.
+**Nhận xét:** Opening k=2 là ổn định nhất. Line removal bằng Hough có cải thiện so với morph line removal nhưng không vượt combo filter+morph.
+
+### 4.3. Dataset 2 (Kaggle, 5 ký tự)
+
+**Filter comparison**
+
+| Method        | seg_success_rate |
+| ------------- | ---------------: |
+| gaussian_k3   |             0.06 |
+| **gaussian_k5** |          **0.105** |
+| median_k3     |            0.015 |
+| median_k5     |            0.015 |
+| bilateral_d5  |             0.01 |
+| bilateral_d7  |            0.005 |
+
+**Morphology study**
+
+| Method        | seg_success_rate |
+| ------------- | ---------------: |
+| open_k2       |            0.025 |
+| **open_k3**   |         **0.275** |
+| close_k2      |            0.005 |
+| close_k3      |              0.0 |
+| open_close_k2 |            0.015 |
+| close_open_k2 |             0.02 |
+
+**Line removal**
+
+| Method        | seg_success_rate |
+| ------------- | ---------------: |
+| **line_morph_k3** |        **0.105** |
+| line_morph_k5 |             0.02 |
+| line_hough_s1 |            0.015 |
+| line_hough_s2 |             0.01 |
+
+**Combo experiments**
+
+| Combo                            | seg_success_rate |
+| -------------------------------- | ---------------: |
+| combo_median_k3_open_k2          |             0.02 |
+| combo_median_k3_open_k2_hough_s1 |             0.03 |
+| **combo_gaussian_k3_open_k2**    |              0.1 |
+
+**Nhận xét:** Kaggle rất khó với pipeline hiện tại. Kết quả tốt nhất vẫn thấp (open_k3 = 0.275). Cần nghiên cứu lại threshold/segmentation cho dữ liệu này.
 
 ## 5) Đề xuất cuối cùng
 
-### 5.1. Combo mặc định (khuyến nghị)
+### 5.1. Dataset 2 (raw) - combo mặc định (khuyến nghị)
 
 * **Median k=3 + Opening k=2**
-* Lý do: đạt seg_success cao nhất trên dataset 2 (0.76) và ít giảm trên dataset 1 (0.985).
+* Lý do: đạt seg_success cao nhất trên dataset 2 raw (0.755) và ít giảm trên dataset 1 (0.985).
 
-### 5.2. Combo tùy chọn khi có nhiều đường gạch
+### 5.2. Dataset 2 (raw) - tùy chọn khi có nhiều đường gạch
 
 * **Median k=3 + Opening k=2 + Hough line removal**
 * Chỉ dùng nếu ảnh có line rõ, vì thời gian chậm hơn và không tăng kết quả trung bình.
 
-### 5.3. Khi nào chọn Gaussian?
+### 5.3. Dataset 1 (ảnh sạch)
 
-* Nếu ưu tiên dataset 1 (ảnh rất sạch) và dataset 2 không quan trọng.
-* Gaussian k=3 + Opening k=2 giữ 0.995 cho dataset 1, nhưng giảm còn 0.695 cho dataset 2.
+* Gaussian hoặc Bilateral vẫn giữ mức cao nhất (0.995).
+* Median k=3 vẫn ổn và phù hợp nếu muốn thống nhất pipeline với dataset 2 raw.
+
+### 5.4. Dataset 2 (Kaggle)
+
+* Pipeline hiện tại chưa phù hợp: seg_success thấp ở mọi cấu hình.
+* Tạm thời tốt nhất là **open_k3** (0.275) hoặc **gaussian_k5** (0.105), nhưng cần cải tiến mạnh:
+  * Điều chỉnh threshold (adaptive với tham số khác) và đảo màu phù hợp.
+  * Tinh chỉnh segmentation: min_area, aspect ratio, min_height, và xử lý kí tự dính.

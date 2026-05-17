@@ -1,0 +1,4 @@
+dataset,variant,num_images,seg_success_rate,seg_count_mean,contour_count_mean,contour_area_mean,foreground_ratio_mean,time_sec
+dataset2,combo_median_k3_open_k2,200.0,0.02,3.535,3.79,642.2682805596467,0.18527145127118635,0.11649441719055176
+dataset2,combo_median_k3_open_k2_hough_s1,200.0,0.03,3.57,3.83,646.5895651117592,0.18524673375706208,0.2040269374847412
+dataset2,combo_gaussian_k3_open_k2,200.0,0.1,3.69,4.105,592.4032349736433,0.2030353990112995,0.12341809272766113

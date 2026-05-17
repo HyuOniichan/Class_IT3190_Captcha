@@ -454,7 +454,10 @@ def run_benchmark(
     print(f"Results saved to {csv_path}")
 
 
-def build_dataset_configs(dataset2_dir: Optional[str]) -> List[DatasetConfig]:
+def build_dataset_configs(
+    dataset2_dir: Optional[str],
+    dataset2_expected_chars: int,
+) -> List[DatasetConfig]:
     configs = [
         DatasetConfig(
             name="dataset1",
@@ -470,7 +473,7 @@ def build_dataset_configs(dataset2_dir: Optional[str]) -> List[DatasetConfig]:
         DatasetConfig(
             name="dataset2",
             input_dir=dataset2_dir or "dataset_v2/raw",
-            expected_chars=4,
+            expected_chars=dataset2_expected_chars,
             threshold_default="adaptive_inv",
             resize_mode="height",
             min_area=30,
@@ -491,6 +494,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--dataset", choices=["1", "2", "all"], default="all")
     parser.add_argument("--dataset2-dir", default=None, help="Override dataset 2 input dir")
+    parser.add_argument("--dataset2-chars", type=int, default=4, help="Expected characters for dataset 2")
     parser.add_argument("--max-images", type=int, default=200)
     parser.add_argument("--seed", type=int, default=36)
     parser.add_argument("--out-dir", default="experiments/output")
@@ -503,7 +507,7 @@ def main() -> None:
     args = parse_args()
     random.seed(args.seed)
 
-    configs = build_dataset_configs(args.dataset2_dir)
+    configs = build_dataset_configs(args.dataset2_dir, args.dataset2_chars)
     if args.dataset == "1":
         configs = [configs[0]]
     elif args.dataset == "2":
