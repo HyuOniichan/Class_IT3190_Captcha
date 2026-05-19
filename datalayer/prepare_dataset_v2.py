@@ -19,12 +19,14 @@ except ImportError:  # pragma: no cover
 try:
     import torch
     import torch.nn as nn
+    import torch.nn.functional as F
     import torch.optim as optim
     from torch.utils.data import DataLoader, Dataset
     import torchvision.transforms as transforms
 except ImportError:  # pragma: no cover
     torch = None
     nn = None
+    F = None
     optim = None
     DataLoader = None
     Dataset = None
@@ -260,8 +262,9 @@ if torch is not None and nn is not None:
             return None
         os.makedirs(output_dir, exist_ok=True)
 
+        target_size = (64, 128)
         transform = transforms.Compose([
-            transforms.Resize((64, 128)),
+            transforms.Resize(target_size),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5])
         ])
@@ -284,6 +287,13 @@ if torch is not None and nn is not None:
                 # Train discriminator
                 noise = torch.randn(batch_size_curr, z_dim, 1, 1, device=device)
                 fake = generator(noise)
+                if fake.shape[-2:] != real.shape[-2:]:
+                    fake = F.interpolate(
+                        fake,
+                        size=real.shape[-2:],
+                        mode="bilinear",
+                        align_corners=False,
+                    )
                 real_labels = torch.ones(batch_size_curr, 1, device=device)
                 fake_labels = torch.zeros(batch_size_curr, 1, device=device)
 
@@ -301,7 +311,15 @@ if torch is not None and nn is not None:
                 g_optimizer.step()
 
         with torch.no_grad():
-            generated = generator(fixed_noise).cpu()
+            generated = generator(fixed_noise)
+            if generated.shape[-2:] != target_size:
+                generated = F.interpolate(
+                    generated,
+                    size=target_size,
+                    mode="bilinear",
+                    align_corners=False,
+                )
+            generated = generated.cpu()
             for i in range(generated.size(0)):
                 img_tensor = generated[i].squeeze(0)
                 img_tensor = (img_tensor + 1) / 2
@@ -353,7 +371,7 @@ def prepare_dataset_v2(
     source_dir: str = "dataset/raw/1k_pbm",
     output_dir: str = "dataset_v2/raw",
     meta_dir: str = "dataset_v2/meta",
-    use_gan: bool = False,
+    use_gan: bool = True,
     captcha_count: int = 200,
     augment_copies: int = 3,
 ):

@@ -103,6 +103,13 @@ Per-image accuracy luôn $\le$ per-character accuracy. Chi tiết xem docstring 
 + Note: Các stage sau nên follow theo filename với đuôi `_v2`. Ví dụ: Stage 2 ở folder `preprocess` -> Sẽ có file `general_preprocess_v2.py`
 + Note: Để ý cách chạy file, `python main.py --stage 1 --dataset 2` --> Thêm argument `--dataset 2` để chọn dataset nhóm 2.
 
+### 17/5/2026 - Hùng Anh
++ Thử nghiệm tiền xử lý nâng cao (Filter/Morphology/Line removal/Combo) bằng script `experiments/preprocess_benchmark.py`
++ Chạy benchmark trên 3 tập: `dataset/raw` (dataset 1), `dataset_v2/raw`, và `dataset_v2/kaggle_captcha` (5 ký tự)
++ Thêm tuỳ chọn `--dataset2-chars` để đánh giá Kaggle đúng số ký tự
++ Kết quả lưu ở `experiments/output/raw` và `experiments/output/kaggle`
++ Viết đề xuất tổng hợp ở `experiments/preprocess_proposal.md`
+
 
 ## Ref
 + [1] Docs tổng: [ML 2025.2](https://docs.google.com/document/d/1g3PKIR1HZzpv9pxYNPCW63b5PtAFzVbOIYlK6n1ih1c/edit?usp=sharing)

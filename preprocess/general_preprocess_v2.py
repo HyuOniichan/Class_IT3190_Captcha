@@ -20,6 +20,8 @@ def run_preprocessing_pipeline_v2(
     os.makedirs(output_dir, exist_ok=True)
     for img_name in os.listdir(input_dir):
         img_path = os.path.join(input_dir, img_name)
+        if not os.path.isfile(img_path):
+            continue
         img = cv2.imread(img_path) # Read as is, strategy handles grayscale
         if img is None:
             print(f"Warning: Could not read image {img_path}. Skipping.")

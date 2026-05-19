@@ -4,6 +4,7 @@ __pycache__/
 
 # Local
 test.py
+.vscode/
 
 # Dataset
 dataset/raw/ctt_sis/*
@@ -11,6 +12,10 @@ dataset/processed/*
 dataset/segmented/*
 dataset_v2/meta/*
 dataset_v2/raw/*
+dataset_v2/processed/*
+
+# Experiment outputs (images only)
+experiments/output/samples/*
 
 # Evaluation
 evaluation/confusion_matrix.png
