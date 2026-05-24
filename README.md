@@ -110,6 +110,23 @@ Per-image accuracy luôn $\le$ per-character accuracy. Chi tiết xem docstring 
 + Kết quả lưu ở `experiments/output/raw` và `experiments/output/kaggle`
 + Viết đề xuất tổng hợp ở `experiments/preprocess_proposal.md`
 
+### 25/5/2026 - Minh Duy & Hùng Anh
++ Stage 9 - Đánh giá Segmentation (VP) và Huấn luyện CRNN End-to-End
++ Đánh giá Segmentation bằng hình chiếu dọc (Vertical Projection Profile - VP):
+  + Tích hợp cơ chế lọc ảnh sáng (>93% pixel trắng) để loại bỏ các segment rác (ghost segments).
+  + Trên `dataset_v2/raw` (4 ký tự): Đạt tỷ lệ phân đoạn đúng tối đa **85.39%** với cấu hình `gap_ratio=0.2, min_width=8, smooth_kernel=11`.
+  + Trên `dataset_v2/kaggle_captcha` (5 ký tự): Chỉ đạt tối đa **8.80%** phân đoạn đúng do ký tự dính nhau và nhiễu đường gạch phức tạp.
+  + Đánh giá chi tiết lưu tại `experiments/vp_segmentation_evaluation.md`.
++ Nhận diện CAPTCHA dạng chuỗi không qua phân đoạn (End-to-End CRNN):
+  + Xây dựng mô hình CRNN (CNN + BiLSTM + CTC Loss) giải mã Greedy CTC dài $T = 32$.
+  + Tích hợp toàn bộ tiền xử lý (grayscale, resize, adaptive threshold, line removal, normalize) bằng cách gọi trực tiếp `Dataset2PreprocessingStrategy` từ thư mục `preprocess` trung tâm để đồng bộ hóa và bảo đảm không xử lý riêng lẻ bên ngoài.
+  + Huấn luyện 20 epochs trên CPU với 10k mẫu ảnh (chia 80% train, 20% validation).
+  + Kết quả đánh giá trên tập Validation (2,008 mẫu):
+    + **Word-level Accuracy (khớp toàn chuỗi)**: **`60.06%`** tổng thể (Char Accuracy đạt **`84.26%`**, Edit distance **`0.5876`**).
+    + Phân rã theo tập nguồn: tập `raw` đạt **`76.12%`**, tập `kaggle_captcha` đạt **`63.39%`**, tập `processed` đạt **`44.00%`** Word Accuracy.
+    + Thể hiện tính ưu việt vượt trội so với phân đoạn vật lý truyền thống trên các tập dữ liệu nhiễu và dính ký tự (ví dụ: tập Kaggle tăng từ 8.80% lên 63.39%).
+    + Chi tiết báo cáo và đánh giá lưu tại `end_to_end_test/crnn_evaluation.md`.
+
 
 ## Ref
 + [1] Docs tổng: [ML 2025.2](https://docs.google.com/document/d/1g3PKIR1HZzpv9pxYNPCW63b5PtAFzVbOIYlK6n1ih1c/edit?usp=sharing)

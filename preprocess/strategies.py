@@ -106,7 +106,9 @@ class Dataset2PreprocessingStrategy(PreprocessingStrategy):
         denoise_method: Literal["median", "gaussian"] = "median",
         threshold_method: Literal["otsu", "adaptive"] = "adaptive",
         line_removal_kernel_size: int = 3,
-        denoising_kernel_size: int = 3
+        denoising_kernel_size: int = 3,
+        maintain_aspect_ratio: bool = True,
+        normalize: bool = False
     ):
         """
         Initializes the Dataset2PreprocessingStrategy.
@@ -117,15 +119,21 @@ class Dataset2PreprocessingStrategy(PreprocessingStrategy):
             threshold_method (Literal["otsu", "adaptive"]): Thresholding method. Defaults to "adaptive".
             line_removal_kernel_size (int): Kernel size for morphological operations for line removal. Defaults to 3.
             denoising_kernel_size (int): Kernel size for denoising. Defaults to 3.
+            maintain_aspect_ratio (bool): If True, resizes keeping aspect ratio. If False, resizes to size directly. Defaults to True.
+            normalize (bool): If True, converts image to float32 and scales to [0, 1]. Defaults to False.
         """
         self.size = size
         self.denoise_method = denoise_method
         self.threshold_method = threshold_method
         self.line_removal_kernel_size = line_removal_kernel_size
         self.denoising_kernel_size = denoising_kernel_size
+        self.maintain_aspect_ratio = maintain_aspect_ratio
+        self.normalize = normalize
 
     def _resize_image(self, img: np.ndarray) -> np.ndarray:
-        """Standardize image size while maintaining aspect ratio."""
+        """Standardize image size."""
+        if not self.maintain_aspect_ratio:
+            return cv2.resize(img, self.size)
         target_height = self.size[1]  # Use the height from size tuple
         h, w = img.shape[:2]
         aspect_ratio = w / h
@@ -201,4 +209,122 @@ class Dataset2PreprocessingStrategy(PreprocessingStrategy):
         kernel = np.ones((2,2), np.uint8)
         img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel, iterations=1)
         
+        if self.normalize:
+            img = img.astype(np.float32) / 255.0
+            
         return img
+
+class VerticalProjectionSegmentationStrategy:
+    """
+    Segmentation by vertical projection profile.
+    Params:
+      - char_size: output character size (w,h) e.g. (28,28)
+      - min_width: minimum column width to accept a segment
+      - gap_ratio: fraction of max projection used to detect gaps
+      - smooth_kernel: odd kernel size for 1-D smoothing (must be odd)
+      - max_white_ratio: reject segments with too many white pixels after resizing
+    """
+    def __init__(self, char_size=(28, 28), min_width=8, gap_ratio=0.2, smooth_kernel=11, max_white_ratio=0.93):
+        self.char_size = char_size
+        self.min_width = max(3, min_width)
+        self.gap_ratio = float(gap_ratio)
+        self.smooth_kernel = int(smooth_kernel) if int(smooth_kernel) % 2 == 1 else int(smooth_kernel) + 1
+        self.max_white_ratio = float(max_white_ratio)
+
+    def _prepare_binary(self, img):
+        import numpy as np, cv2
+        if img is None:
+            return img
+        if img.dtype != np.uint8:
+            img = img.astype(np.uint8)
+        # ensure binary
+        unique = np.unique(img)
+        if len(unique) > 2:
+            _, img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+        # foreground should be black for projection (we count black pixels)
+        white = int((img == 255).sum())
+        black = int((img == 0).sum())
+        if black > white:
+            img = cv2.bitwise_not(img)
+        # optional small border crop
+        if img.shape[0] > 6 and img.shape[1] > 6:
+            img = img[2:-2, 2:-2]
+        return img
+
+    def _smooth_projection(self, proj):
+        import numpy as np, cv2
+        # proj is 1D numpy float array; make it 2D for cv2.GaussianBlur
+        arr = proj.reshape(1, -1).astype('float32')
+        k = max(3, self.smooth_kernel)
+        # kernel must be odd; use (k,1)
+        if k % 2 == 0:
+            k += 1
+        sm = cv2.GaussianBlur(arr, (k, 1), 0).reshape(-1)
+        return sm
+
+    def _find_cuts(self, binary):
+        import numpy as np
+        # projection: count black pixels per column
+        proj = np.sum(binary == 0, axis=0).astype(float)
+        if proj.size == 0:
+            return [0, binary.shape[1]]
+        sm = self._smooth_projection(proj)
+        thresh = sm.max() * self.gap_ratio
+        gaps = sm < thresh
+        # turn gaps boolean -> continuous gap intervals
+        cuts = [0]
+        in_gap = False
+        gap_start = None
+        for i, g in enumerate(gaps):
+            if g and not in_gap:
+                in_gap = True
+                gap_start = i
+            elif (not g) and in_gap:
+                in_gap = False
+                gap_end = i
+                mid = (gap_start + gap_end) // 2
+                cuts.append(mid)
+        if in_gap:
+            cuts.append((gap_start + len(gaps)) // 2)
+        cuts.append(binary.shape[1])
+        # ensure sorted unique and at least two boundaries
+        cuts = sorted(list(dict.fromkeys(cuts)))
+        return cuts
+
+    def _is_too_bright(self, segment):
+        import numpy as np
+        if segment is None or segment.size == 0:
+            return True
+        white_pixels = int((segment == 255).sum())
+        white_ratio = white_pixels / float(segment.size)
+        return white_ratio > self.max_white_ratio
+
+    def segment(self, image):
+        import cv2, numpy as np
+        img = self._prepare_binary(image)
+        if img is None:
+            return []
+        cuts = self._find_cuts(img)
+        segments = []
+        for i in range(len(cuts) - 1):
+            l, r = cuts[i], cuts[i + 1]
+            width = r - l
+            if width < self.min_width:
+                continue
+            crop = img[:, l:r]
+            try:
+                resized = cv2.resize(crop, self.char_size, interpolation=cv2.INTER_LINEAR)
+            except Exception:
+                # fallback: pad/reshape
+                h = img.shape[0]
+                import numpy as np
+                canvas = np.ones((h, max(self.min_width, width)), dtype=img.dtype) * 255
+                canvas[:, :width] = crop
+                resized = cv2.resize(canvas, self.char_size, interpolation=cv2.INTER_LINEAR)
+            if resized.ndim == 3:
+                resized = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+            _, resized = cv2.threshold(resized, 127, 255, cv2.THRESH_BINARY)
+            if self._is_too_bright(resized):
+                continue
+            segments.append(resized)
+        return segments
