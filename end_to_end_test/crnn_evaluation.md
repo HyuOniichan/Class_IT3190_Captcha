@@ -85,7 +85,7 @@ Hệ thống sử dụng mô hình kết hợp mạng tích chập (CNN) và m�
 
 ---
 
-## 6. Lợi ích – Hạn chế – Khuyến nghị sử dụng
+## 6. Lợi ích – Hạn chế
 
 ### 6.1. Lợi ích (Ưu điểm)
 * **Xử lý CAPTCHA chuỗi nhiều ký tự và biến dạng**: Nhận diện tốt các CAPTCHA có độ dài chuỗi ký tự thay đổi (cả 4 và 5 ký tự) mà không cần thay đổi hay cấu hình lại kiến trúc mạng.
