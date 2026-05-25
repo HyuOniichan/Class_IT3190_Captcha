@@ -96,4 +96,3 @@ Hệ thống sử dụng mô hình kết hợp mạng tích chập (CNN) và m�
 ### 6.2. Hạn chế (Nhược điểm)
 * **Thời gian huấn luyện lâu hơn**: Mô hình CRNN tuần tự yêu cầu nhiều thời gian tính toán hơn khi huấn luyện (huấn luyện trên CPU mất khoảng 20 phút cho 20 epochs), khuyến nghị nên sử dụng card đồ họa (GPU) để tối ưu.
 * **Độ phức tạp và giám sát dữ liệu**: Đòi hỏi lượng dữ liệu gán nhãn lớn hơn (ít nhất hàng ngàn ảnh) để hàm mất mát CTC tự căn chỉnh chuỗi ký tự hiệu quả.
-* **Khó khăn khi ký tự bị biến dạng đứt nét nghiêm trọng**: Như trong tập `processed`, khi các phương pháp lọc nét làm mỏng hoặc đứt lìa nét chữ quá sâu, mô hình dễ bị mất đặc trưng cấu trúc chữ, dẫn đến tỷ lệ chính xác giảm còn `44.00%`.
