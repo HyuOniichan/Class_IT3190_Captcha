@@ -90,8 +90,7 @@ Hệ thống sử dụng mô hình kết hợp mạng tích chập (CNN) và m�
 ### 6.1. Lợi ích (Ưu điểm)
 * **Xử lý CAPTCHA chuỗi nhiều ký tự và biến dạng**: Nhận diện tốt các CAPTCHA có độ dài chuỗi ký tự thay đổi (cả 4 và 5 ký tự) mà không cần thay đổi hay cấu hình lại kiến trúc mạng.
 * **Không cần phân đoạn vật lý (Segmentation-free)**: Bỏ qua hoàn toàn việc tìm kiếm khoảng trắng hoặc cắt rời ký tự vật lý – bước cực kỳ bất ổn định và dễ thất bại khi chữ bị dính nhau, nghiêng hoặc chông chéo.
-* **Độ chính xác vượt trội**: Đạt tỷ lệ nhận dạng đúng toàn chuỗi cao so với phương pháp phân đoạn (tập Kaggle tăng vọt lên **`63.39%`** so với chỉ **`8.80%`** của VP Segmentation).
-* **Kháng nhiễu tự nhiên**: Sự kết hợp của trích xuất đặc trưng không gian (CNN) và mối quan hệ chuỗi tuần tự (BiLSTM) giúp mô hình tự bôi trơn để nhận diện xuyên qua các nét nhiễu hạt nhỏ hoặc đường gạch.
+* **Độ chính xác**: Đạt tỷ lệ nhận dạng đúng toàn chuỗi cao so với phương pháp phân đoạn (tập Kaggle **`63.39%`**).
 
 ### 6.2. Hạn chế (Nhược điểm)
 * **Thời gian huấn luyện lâu hơn**: Mô hình CRNN tuần tự yêu cầu nhiều thời gian tính toán hơn khi huấn luyện (huấn luyện trên CPU mất khoảng 20 phút cho 20 epochs), khuyến nghị nên sử dụng card đồ họa (GPU) để tối ưu.
