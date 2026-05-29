@@ -4,7 +4,7 @@ import torch
 from model.cnn import build_model
 
 
-def load_inference_model(model_path="model/saved/captcha_cnn.pt", num_classes=10, device=None):
+def load_inference_model(model_path="model/saved/captcha_cnn.pt", num_classes=36, device=None):
     #Sau này nhớ thay số class khi update dataset
     #Lỗi khi để num_classes = 36. Đoán là do chỉ có số nên chỉ lưu 10 class
 

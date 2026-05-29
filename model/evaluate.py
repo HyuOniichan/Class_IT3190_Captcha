@@ -56,16 +56,29 @@ def plot_sample_errors(errors, output_path, max_samples=16):
     plt.close()
     print(f"[Evaluation] Saved sample errors to {output_path}")
 
-def evaluate_system(test_csv="dataset/meta/1k_pbm/test.csv", raw_dir="dataset/raw/1k_pbm", output_dir="evaluation"):
+def evaluate_system(test_csv="dataset/meta/1k_pbm/test.csv", raw_dir="dataset/raw/1k_pbm", output_dir="evaluation", model_path=None, model_type="cnn", dataset="1"):
     """
     Run full evaluation on the test set.
     Calculates Character Accuracy, CAPTCHA Accuracy, and performs Error Analysis.
     """
-    model, device = load_inference_model()
+    if model_type == "cnn":
+        path = model_path if model_path else "model/saved/captcha_cnn.pt"
+        model, device = load_inference_model(model_path=path)
+    elif model_type == "multi_label":
+        path = model_path if model_path else "model/saved/captcha_multi_label.pt"
+        from model.train import load_multi_label_model
+        model, device = load_multi_label_model(path)
+    elif model_type == "crnn":
+        path = model_path if model_path else "model/saved/captcha_crnn.pt"
+        from model.train import load_crnn_model
+        model, device = load_crnn_model(path)
+    else:
+        raise ValueError(f"Unknown model_type: {model_type}")
+
     os.makedirs(output_dir, exist_ok=True)
     
     print("\n" + "="*50)
-    print("  STEP 7 — System Evaluation")
+    print(f"  STEP 7 — System Evaluation ({model_type.upper()})")
     print("="*50)
     
     if not os.path.exists(test_csv):
@@ -90,13 +103,35 @@ def evaluate_system(test_csv="dataset/meta/1k_pbm/test.csv", raw_dir="dataset/ra
             if not row:
                 continue
             filename = row[0].strip()
-            true_text = os.path.splitext(filename)[0].upper()
+            # Split off the stem and remove suffixes like _orig to get target label
+            stem = os.path.splitext(filename)[0]
+            if '_' in stem:
+                true_text = stem.split('_')[0].upper()
+            else:
+                true_text = stem.upper()
             
             img_path = os.path.join(raw_dir, filename)
             if not os.path.exists(img_path):
-                continue
+                # Try finding alternative extensions if file not found
+                base, ext = os.path.splitext(filename)
+                found = False
+                for alt_ext in ['.png', '.pbm', '.jpg', '.jpeg']:
+                    alt_path = os.path.join(raw_dir, base + alt_ext)
+                    if os.path.exists(alt_path):
+                        img_path = alt_path
+                        found = True
+                        break
+                if not found:
+                    continue
                 
-            pred_text, chars = predict_captcha(img_path, model, device)
+            if model_type == "cnn":
+                pred_text, chars = predict_captcha(img_path, model, device, dataset=dataset)
+            elif model_type == "multi_label":
+                from model.inference import predict_captcha_multi_label
+                pred_text = predict_captcha_multi_label(img_path, model, device, dataset=dataset)
+            elif model_type == "crnn":
+                from model.inference import predict_captcha_crnn
+                pred_text = predict_captcha_crnn(img_path, model, device, dataset=dataset)
             
             total_samples += 1
             total_chars += len(true_text)
@@ -132,14 +167,15 @@ def evaluate_system(test_csv="dataset/meta/1k_pbm/test.csv", raw_dir="dataset/ra
     print(f"\n[Results] Total Samples Tested: {total_samples}")
     print(f"[Results] CAPTCHA Accuracy: {captcha_acc:.4f} ({correct_captchas}/{total_samples})")
     print(f"[Results] Character Accuracy: {char_acc:.4f} ({correct_chars}/{total_chars})")
-    print(f"[Results] Segmentation Errors (Length Mismatch): {seg_errors}/{total_samples}")
+    if model_type == "cnn":
+        print(f"[Results] Segmentation Errors (Length Mismatch): {seg_errors}/{total_samples}")
     
     # Visualizations
     if y_true_chars and y_pred_chars:
-        plot_confusion_matrix(y_true_chars, y_pred_chars, os.path.join(output_dir, "confusion_matrix.png"))
+        plot_confusion_matrix(y_true_chars, y_pred_chars, os.path.join(output_dir, f"confusion_matrix_{model_type}.png"))
         
     if error_samples:
-        plot_sample_errors(error_samples, os.path.join(output_dir, "sample_errors.png"))
+        plot_sample_errors(error_samples, os.path.join(output_dir, f"sample_errors_{model_type}.png"))
 
 if __name__ == "__main__":
     evaluate_system()
