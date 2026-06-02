@@ -124,13 +124,13 @@ project
 ```
 
 + Giải thích luồng đi:
-  + `preprocess/` sẽ gồm Stage 1, 2, 3, 4 (cũ) gộp lại
+  + `preprocess/` sẽ gồm Stage 1, 2, 3 (Huy - cũ), 4 (Hùng Anh - cũ) gộp lại
     + Xử lý cho từng dataset, và ghi ra output tương ứng. Ví dụ với dataset lv1 `lv1_1k_pbm` -> Output: `output/dataset/lv1_1k_pbm/...`
     + Bắt đầu với xử lý đơn giản -> Output: folder `preprocessed/`
     + Từ ảnh của một chuỗi số cắt thành ảnh của từng chữ cái -> Output: `segmented/`
     + Sau khi có tập ảnh thì chia train test và ghi metadata -> Output: `meta/`
     + Chuẩn bị dataset để sẵn sàng học -> Output: `build/`
-  + `models/` sẽ tham khảo Stage 5 (cũ), và bổ sung thêm phần **Model Selection** và các mô hình học máy khác
+  + `models/` sẽ tham khảo Stage 5 (Hùng Anh - cũ), và bổ sung thêm phần **Model Selection** và các mô hình học máy khác
     + Gồm các models tương ứng, load data từ folder `build/`:
     + Chuẩn bị class cho model và các siêu tham số tương ứng:
       + `knn.py` - KNN
