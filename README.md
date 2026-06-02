@@ -93,6 +93,59 @@ Per-image accuracy luôn $\le$ per-character accuracy. Chi tiết xem docstring 
     + Trả về predicted text
     + Response về cho giao diện hiển thị
 
+### 1/6/2026 - Huy
++ Refactor toàn bộ source code
++ Cấu trúc folder:
+```
+project
+|-- dataset
+    |-- lv1_1k_pbm
+    |-- lv2_1k_5digits
+|-- models
+    |-- cnn.py
+    |-- knn.py
+    |-- svm.py
+    |-- utils.py
+|-- output
+    |-- dataset
+        |-- lv1_1k_pbm
+            |-- preprocessed
+            |-- segmented
+            |-- meta
+            |-- build
+        |-- lv2_1k_5digits
+    |-- models
+|-- preprocess
+    |-- lv1.py
+    |-- utils.py
+|-- main.py
+|-- README.md
+|-- requirements.txt
+```
+
++ Giải thích luồng đi:
+  + `preprocess/` sẽ gồm Stage 1, 2, 3, 4 (cũ) gộp lại
+    + Xử lý cho từng dataset, và ghi ra output tương ứng. Ví dụ với dataset lv1 `lv1_1k_pbm` -> Output: `output/dataset/lv1_1k_pbm/...`
+    + Bắt đầu với xử lý đơn giản -> Output: folder `preprocessed/`
+    + Từ ảnh của một chuỗi số cắt thành ảnh của từng chữ cái -> Output: `segmented/`
+    + Sau khi có tập ảnh thì chia train test và ghi metadata -> Output: `meta/`
+    + Chuẩn bị dataset để sẵn sàng học -> Output: `build/`
+  + `models/` sẽ tham khảo Stage 5 (cũ), và bổ sung thêm phần **Model Selection** và các mô hình học máy khác
+    + Gồm các models tương ứng, load data từ folder `build/`:
+    + Chuẩn bị class cho model và các siêu tham số tương ứng:
+      + `knn.py` - KNN
+        + k: range [..., ...]
+        + metric: [...]
+        + p = 2 (khoảng cách Euclidean)
+      + `svm.py` - SVM
+        + kernel: [...]
+        + C: [..., ...]
+  + `output/` sẽ chứa tất cả output của các phần sau khi chạy `main.py`
+    + `output/dataset` - Kết quả sau khi chạy Stage 1 (mới) - Preprocessing
+    + `output/models` - Kết quả chạy Stage 2 - Model Selection
+
+
 ## Ref
 + Docs tổng: [ML 2025.2](https://docs.google.com/document/d/1g3PKIR1HZzpv9pxYNPCW63b5PtAFzVbOIYlK6n1ih1c/edit?usp=sharing)
-+ Dataset hiện tại: [CAPTCHA Dataset](https://cgi.cse.unsw.edu.au/~cs1511/17s1/assignments/captcha/captcha.html) 
++ Dataset lv1 (lv1_1k_pbm): [CAPTCHA Dataset](https://cgi.cse.unsw.edu.au/~cs1511/17s1/assignments/captcha/captcha.html) 
++ Dataset lv2 (lv2_1k_5digits): [CAPTCHA Dataset](https://www.kaggle.com/datasets/fournierp/captcha-version-2-images)

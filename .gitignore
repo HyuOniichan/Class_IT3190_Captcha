@@ -6,10 +6,10 @@ __pycache__/
 test.py
 
 # Dataset
-dataset/raw/ctt_sis/*
-dataset/processed/*
-dataset/segmented/*
+dataset/lv1_1k_pbm/*
+dataset/lv1_ctt_sis/*
+dataset/lv2_1k_pbm_noise/*
+dataset/lv2_1k_5digits/*
 
-# Evaluation
-evaluation/confusion_matrix.png
-evaluation/sample_errors.png
+# Output
+output/*
