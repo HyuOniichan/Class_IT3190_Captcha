@@ -130,16 +130,34 @@ project
     + Từ ảnh của một chuỗi số cắt thành ảnh của từng chữ cái -> Output: `segmented/`
     + Sau khi có tập ảnh thì chia train test và ghi metadata -> Output: `meta/`
     + Chuẩn bị dataset để sẵn sàng học -> Output: `build/`
+  
   + `models/` sẽ tham khảo Stage 5 (Hùng Anh - cũ), và bổ sung thêm phần **Model Selection** và các mô hình học máy khác
     + Gồm các models tương ứng, load data từ folder `build/`:
     + Chuẩn bị class cho model và các siêu tham số tương ứng:
       + `knn.py` - KNN
-        + k: range [..., ...]
-        + metric: [...]
-        + p = 2 (khoảng cách Euclidean)
+        + k: range $[1, 25]$
+        + metric: ["minkowski", "manhattan", "euclidean", "cosine"]
+        + p = $2$ (khoảng cách Euclidean)
+      + `decision_tree.py` - Decision Tree
+        + max_depth: $[2, 10]$
+      + `random_forest.py` - Random Forest
+        + n_estimators: $[5, 10, 15, 20, 30, 50, 75, 100, 150]$
       + `svm.py` - SVM
-        + kernel: [...]
-        + C: [..., ...]
+        + kernel: ["linear", "poly", "rbf", "sigmoid"]
+        + C: $[0.1, 1.0, 2.0, 5.0, 10.0]$
+      + `cnn.py` - CNN
+        + Architecture:
+          + Conv(1->32, 3) -> ReLU -> MaxPool(2)
+          + Conv(32->64, 3) -> ReLU -> MaxPool(2)
+          + Conv(64->128, 3) -> ReLU
+          + Flatten -> FC(512) -> ReLU -> Dropout -> FC(num_classes)
+          + After two 2x2 max-pools the spatial size is 5x5 (28->13->5 with valid padding inside each pool window), giving 128*5*5 = 3200 features before the FC layers.
+        + Other hyperparams:
+          + optimizer: ["Adam", "SGD"],
+          + lr: $[10^{-2}, 10^{-3}, 10^{-4}]$,
+          + batch_size: $[32, 64, 128]$,
+          + epochs: $[5, 10, 20]$,
+
   + `output/` sẽ chứa tất cả output của các phần sau khi chạy `main.py`
     + `output/dataset` - Kết quả sau khi chạy Stage 1 (mới) - Preprocessing
     + `output/models` - Kết quả chạy Stage 2 - Model Selection

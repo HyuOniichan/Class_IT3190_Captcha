@@ -6,6 +6,8 @@ from torch.optim import Adam, SGD
 
 from .utils import plot_accuracies, save_reports
 from .knn import ModelKNN
+from .decision_tree import ModelDecisionTree
+from .random_forest import ModelRandomForest
 from .svm import ModelSVM
 from .cnn import ModelCNN
 
@@ -19,6 +21,12 @@ HYPER_PARAMETERS = {
     'KNN': {
         'k': list(range(1, 26)),
         'distance_fn': ["minkowski", "manhattan", "euclidean", "cosine"]
+    },
+    'DecisionTree': {
+        'max_depth': list(range(2, 11))
+    },
+    'RandomForest': {
+        'num_trees': [5, 10, 15, 20, 30, 50, 75, 100, 150]
     },
     'SVM': {
         'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
@@ -96,7 +104,86 @@ def run_knn(train_data, test_data, hyper_parameters, save_path="output/models/lv
         reports=reports_dist,
         save_path=filename
     )
-        
+
+
+
+def run_dt(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/decision_tree"):
+    """Model selection for Decision Tree"""
+    
+    # Init model
+    dt_model = ModelDecisionTree()
+
+    # Prepare dataset
+    X_train, y_train = train_data['X'], train_data['y']
+    X_test, y_test = test_data['X'], test_data['y']
+    dt_model.prepare(X_train, X_test, y_train, y_test)
+    
+    # Model selection - max_depth
+    accuracies_depth = []
+    reports_depth = []
+    
+    for depth in hyper_parameters['max_depth']:
+        _, accuracy, report = dt_model.run(max_depth=depth)
+        accuracies_depth.append(accuracy)
+        reports_depth.append(report)
+    
+    filename = os.path.join(save_path, "model_selection-max_depth")
+    plot_accuracies(
+        X=hyper_parameters['max_depth'],
+        y=accuracies_depth,
+        X_label="Max depth",
+        y_label="Accuracy",
+        title="[Model Selection] Decision Tree - max depth",
+        plot_type='line',
+        save_path=filename
+    )
+    save_reports(
+        hyperparam_name='max_depth',
+        hyperparam_values=hyper_parameters['max_depth'],
+        reports=reports_depth,
+        save_path=filename
+    )
+
+
+
+def run_rf(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/random_forest"):
+    """Model selection for Random Forest"""
+    
+    # Init model
+    rf_model = ModelRandomForest()
+
+    # Prepare dataset
+    X_train, y_train = train_data['X'], train_data['y']
+    X_test, y_test = test_data['X'], test_data['y']
+    rf_model.prepare(X_train, X_test, y_train, y_test)
+    
+    # Model selection - num_trees
+    accuracies_trees = []
+    reports_trees = []
+    
+    for ntree in hyper_parameters['num_trees']:
+        _, accuracy, report = rf_model.run(num_trees=ntree)
+        accuracies_trees.append(accuracy)
+        reports_trees.append(report)
+    
+    filename = os.path.join(save_path, "model_selection-num_trees")
+    plot_accuracies(
+        X=hyper_parameters['num_trees'],
+        y=accuracies_trees,
+        X_label="Number of trees",
+        y_label="Accuracy",
+        title="[Model Selection] Random Forest - num trees",
+        plot_type='bar',
+        save_path=filename
+    )
+    save_reports(
+        hyperparam_name='num_trees',
+        hyperparam_values=hyper_parameters['num_trees'],
+        reports=reports_trees,
+        save_path=filename
+    )
+
+
     
 def run_svm(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/svm"):
     """Model selection for SVM"""
@@ -160,71 +247,8 @@ def run_svm(train_data, test_data, hyper_parameters, save_path="output/models/lv
         reports=reports_c,
         save_path=filename
     )
-    
 
-def run_svm(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/cnn"):
-    """Model selection for CNN"""
 
-    # Init model
-    cnn_model = ModelCNN()
-
-    # Prepare dataset
-    X_train, y_train = train_data['X'], train_data['y']
-    X_test, y_test = test_data['X'], test_data['y']
-    cnn_model.prepare(X_train, X_test, y_train, y_test)
-    
-    # Model selection - kernel
-    accuracies_kernel = []
-    reports_kernel = []
-    
-    for kernel in hyper_parameters['kernel']:
-        _, accuracy, report = cnn_model.run(kernel=kernel)
-        accuracies_kernel.append(accuracy)
-        reports_kernel.append(report)
-    
-    filename = os.path.join(save_path, "model_selection-kernel")
-    plot_accuracies(
-        X=hyper_parameters['kernel'],
-        y=accuracies_kernel,
-        X_label="Kernel",
-        y_label="Accuracy",
-        title="[Model Selection] SVM - kernel",
-        plot_type='bar',
-        save_path=filename
-    )
-    save_reports(
-        hyperparam_name='kernel',
-        hyperparam_values=hyper_parameters['kernel'],
-        reports=reports_kernel,
-        save_path=filename
-    )
-    
-    # Model selection - regularization (C)
-    accuracies_c = []
-    reports_c = []
-
-    for c in hyper_parameters['C']:
-        _, accuracy, report = cnn_model.run(C=c)
-        accuracies_c.append(accuracy)
-        reports_c.append(report)
-    
-    filename = os.path.join(save_path, "model_selection-c")
-    plot_accuracies(
-        X=hyper_parameters['C'],
-        y=accuracies_c,
-        X_label="Regularization (C)",
-        y_label="Accuracy",
-        title="[Model Selection] SVM - C",
-        plot_type='line',
-        save_path=filename
-    )
-    save_reports(
-        hyperparam_name='C',
-        hyperparam_values=hyper_parameters['C'],
-        reports=reports_c,
-        save_path=filename
-    )
-    
 
 def run_cnn(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/cnn"):
     """Model selection for CNN"""
@@ -362,11 +386,15 @@ def models_1k_pbm(
     
     # Paths
     knn_dir = os.path.join(output_dir, 'knn')
+    dt_dir = os.path.join(output_dir, 'decision_tree')
+    rf_dir = os.path.join(output_dir, 'random_forest')
     svm_dir = os.path.join(output_dir, 'svm')
     cnn_dir = os.path.join(output_dir, 'cnn')
     
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(knn_dir, exist_ok=True)
+    os.makedirs(dt_dir, exist_ok=True)
+    os.makedirs(rf_dir, exist_ok=True)
     os.makedirs(svm_dir, exist_ok=True)
     os.makedirs(cnn_dir, exist_ok=True)
     
@@ -376,6 +404,8 @@ def models_1k_pbm(
     
     # Run model selection
     run_knn(train, test, HYPER_PARAMETERS["KNN"])
+    run_dt(train, test, HYPER_PARAMETERS["DecisionTree"])
+    run_rf(train, test, HYPER_PARAMETERS["RandomForest"])
     run_svm(train, test, HYPER_PARAMETERS["SVM"])
     run_cnn(train, test, HYPER_PARAMETERS["CNN"])
     
