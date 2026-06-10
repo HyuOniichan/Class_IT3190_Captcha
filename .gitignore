@@ -13,3 +13,6 @@ dataset/lv2_1k_5digits/*
 
 # Output
 output/*
+
+# Models
+weights/*.joblib

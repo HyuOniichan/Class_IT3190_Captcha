@@ -21,7 +21,7 @@ class ModelSVM():
     
     
     def run(self, kernel='rbf', C=1.0, inplace=False):
-        model = SVC(kernel=kernel, C=C)
+        model = SVC(kernel=kernel, C=C, probability=True)
         model.fit(self.X_train, self.y_train)
         
         y_pred = model.predict(self.X_test)
@@ -37,4 +37,10 @@ class ModelSVM():
             self.report = report
         
         return model, accuracy, report
-        
+    
+    def predict(self, X):
+        input_tensor = flatten(X)
+        y_pred = self.model.predict(input_tensor)
+        probs = self.model.predict_proba(input_tensor)
+        return y_pred, probs
+    

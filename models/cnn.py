@@ -131,6 +131,13 @@ class ModelCNN(ModelBaseClass):
         return model, accuracy, report
     
     
+    def predict(self, X):
+        input_tensor, _ = _prepare_tensors(X)
+        probs = self.model(input_tensor)
+        y_pred = probs.argmax(1)
+        return y_pred, probs
+    
+    
     def save_model(self, path):
         """Save full model state dict."""
         os.makedirs(os.path.dirname(path) or self.save_path, exist_ok=True)

@@ -25,10 +25,10 @@ def flatten(X):
 # Simple CNN
 # ------------------------------
 
-def _prepare_tensors(X, y):
+def _prepare_tensors(X, y=None):
     """Convert numpy arrays to torch tensors with proper shape/dtype."""
     X_t = torch.from_numpy(X).float().unsqueeze(1) / 255.0   # (N, 1, 28, 28)
-    y_t = torch.from_numpy(y).long()
+    y_t = torch.from_numpy(y).long() if y is not None else y
     return X_t, y_t
 
 def _make_loader(X_t, y_t, batch_size, shuffle):

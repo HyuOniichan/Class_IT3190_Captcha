@@ -30,3 +30,12 @@ class ModelBaseClass(ABC):
         """
         pass
     
+    @abstractmethod
+    def predict(self, X):
+        """
+        Predict a sample.
+        Params:
+            X: Input
+        """
+        
+    

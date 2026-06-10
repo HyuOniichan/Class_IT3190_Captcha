@@ -36,4 +36,10 @@ class ModelDecisionTree(ModelBaseClass):
             self.report = report
         
         return model, accuracy, report
-        
+    
+    def predict(self, X):
+        input_tensor = flatten(X)
+        y_pred = self.model.predict(input_tensor)
+        probs = self.model.predict_proba(input_tensor)
+        return y_pred, probs
+    
