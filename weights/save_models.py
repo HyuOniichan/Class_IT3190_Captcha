@@ -4,6 +4,7 @@ import os
 import numpy as np
 import joblib
 
+from models.base import ModelBaseClass
 from models.knn import ModelKNN
 from models.decision_tree import ModelDecisionTree
 from models.random_forest import ModelRandomForest
@@ -31,26 +32,37 @@ test_data = np.load(os.path.join(DATA_DIR, "test.npz"))
 X_train, y_train = train_data['X'], train_data['y']
 X_test, y_test = test_data['X'], test_data['y']
 
-knn_model.prepare(X_train, X_test, y_train, y_test)
-dt_model.prepare(X_train, X_test, y_train, y_test)
-rf_model.prepare(X_train, X_test, y_train, y_test)
-svm_model.prepare(X_train, X_test, y_train, y_test)
-cnn_model.prepare(X_train, X_test, y_train, y_test)
+
+def run_pipeline(model: ModelBaseClass, save_path, **kwargs):
+    # Prepare dataset
+    model.prepare(X_train, X_test, y_train, y_test)
+    
+    # Take the best models 
+    # (script in `models/lv1.py`, results in `output/models/lv1_1k_pbm/`)
+    model.run(**kwargs)
+
+    # Save models
+    save(model, filepath=save_path)
 
 
-# Take the best models 
-# (script in `models/lv1.py`, results in `output/models/lv1_1k_pbm/`)
-knn_model.run(k=10, distance_fn="minkowski", inplace=True)
-dt_model.run(max_depth=10, inplace=True)
-rf_model.run(num_trees=100, inplace=True)
-svm_model.run(kernel="rbf", C=2.0, inplace=True)
-cnn_model.run(inplace=True)
-
-
-# Save models
-save(model=knn_model, filepath="weights/lv1_knn_model.joblib")
-save(model=dt_model, filepath="weights/lv1_dt_model.joblib")
-save(model=rf_model, filepath="weights/lv1_rf_model.joblib")
-save(model=svm_model, filepath="weights/lv1_svm_model.joblib")
-save(model=cnn_model, filepath="weights/lv1_cnn_model.joblib")
+run_pipeline(
+    knn_model, "weights/lv1_knn_model.joblib", 
+    k=10, distance_fn="minkowski", inplace=True
+)
+run_pipeline(
+    dt_model, "weights/lv1_dt_model.joblib", 
+    max_depth=10, inplace=True
+)
+run_pipeline(
+    rf_model, "weights/lv1_rf_model.joblib",
+    num_trees=100, inplace=True
+)
+run_pipeline(
+    svm_model, "weights/lv1_svm_model.joblib",
+    kernel="rbf", C=2.0, inplace=True
+)
+run_pipeline(
+    cnn_model, "weights/lv1_cnn_model.joblib",
+    inplace=True
+)
 
