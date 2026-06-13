@@ -4,12 +4,152 @@ import cv2
 import csv
 import numpy as np
 
+import idx2numpy
+
 
 
 
 
 # ------------------------------
-# Simple processing
+# [all] Constants 
+# ------------------------------
+CHARSET = []
+CHAR_TO_INDEX = {ch: idx for idx, ch in enumerate(CHARSET)}
+INDEX_TO_CHAR = {idx: ch for idx, ch in enumerate(CHARSET)}
+
+
+
+
+
+# ------------------------------
+# [all] Helpers 
+# ------------------------------
+def load_constants(charset=None):
+    global CHARSET, CHAR_TO_INDEX, INDEX_TO_CHAR
+    
+    if charset is not None:
+        CHARSET = charset
+        
+    CHAR_TO_INDEX = {ch: idx for idx, ch in enumerate(CHARSET)}
+    INDEX_TO_CHAR = {idx: ch for idx, ch in enumerate(CHARSET)}
+    
+    return CHARSET, CHAR_TO_INDEX, INDEX_TO_CHAR
+
+
+
+
+
+# ------------------------------
+# [lv0] Dataset builder
+# ------------------------------
+def load_mapping(mapping_path="dataset/lv0_emnist/emnist-balanced-mapping.txt"):
+    """
+    Read mapping.txt (provided with the emnist dataset).
+    
+    Returns:
+        mapping: dict[int, str]
+    """
+    mapping = {}
+    
+    with open(mapping_path, "r") as f:
+        for line in f:
+            idx, ascii_code = map(int, line.split())
+            mapping[idx] = chr(ascii_code)
+
+    print(f"[lv0](preprocessing) Mapping - Loaded {len(mapping)} classes")
+
+    return mapping
+
+
+def convert_ubyte_images(
+    raw_dir="dataset/lv0_emnist"
+):
+    train_X = idx2numpy.convert_from_file(os.path.join(raw_dir, "emnist-balanced-train-images-idx3-ubyte"))
+    train_y = idx2numpy.convert_from_file(os.path.join(raw_dir, "emnist-balanced-train-labels-idx1-ubyte"))
+    test_X = idx2numpy.convert_from_file(os.path.join(raw_dir, "emnist-balanced-test-images-idx3-ubyte"))
+    test_y = idx2numpy.convert_from_file(os.path.join(raw_dir, "emnist-balanced-test-labels-idx1-ubyte"))
+
+    print(f"[lv0](preprocessing) Converted ubyte format:")
+    print(f"Train image shape: {train_X.shape} | Train label shape: {train_y.shape}")
+    print(f"Test image shape: {test_X.shape} | Test label shape: {test_y.shape}")
+
+    return train_X, train_y, test_X, test_y
+
+
+def fix_orientation(X):
+    """
+    Fix orientation for EMNIST dataset
+    """
+    
+    return np.array(
+        [np.fliplr(img.T) for img in X],
+        dtype=np.uint8
+    )
+
+
+def save_dataset(train_X, train_y, test_X, test_y, output_dir="output/dataset/lv0_emnist/build"):
+    """
+    Persist dataset as compressed npz files.
+    """
+    
+    os.makedirs(output_dir, exist_ok=True)
+
+    train_path = os.path.join(output_dir, "train.npz")
+    test_path = os.path.join(output_dir, "test.npz")
+
+    np.savez(train_path, X=train_X, y=train_y)
+    np.savez(test_path, X=test_X, y=test_y)
+
+    print(
+        f"[lv0](preprocessing) Saved {train_path} "
+        f"(X={train_X.shape}, y={train_y.shape})"
+    )
+
+    print(
+        f"[lv0](preprocessing) Saved {test_path} "
+        f"(X={test_X.shape}, y={test_y.shape})"
+    )
+
+
+def lv0_build_dataset_pipeline(
+    raw_dir="dataset/lv0_emnist",
+    output_dir="output/dataset/lv0_emnist/build"
+):
+    """
+    EMNIST preprocessing pipeline.
+
+    Steps:
+        1. Load mapping
+        2. Load ubyte files
+        3. Fix image orientation
+        4. Save processed dataset
+    """
+    
+    # Mapping
+    mapping = load_mapping(os.path.join(raw_dir, "emnist-balanced-mapping.txt"))
+    load_constants(
+        charset=[mapping[idx] for idx in sorted(mapping.keys())]
+    )
+    print(f"[lv0](preprocessing) Charset: {len(CHARSET)} classes")
+
+    # Dataset Loading
+    train_X, train_y, test_X, test_y = convert_ubyte_images(raw_dir)
+
+    # Fix orientation
+    train_X = fix_orientation(train_X)
+    test_X = fix_orientation(test_X)
+
+    # Persist
+    save_dataset(train_X, train_y, test_X, test_y, output_dir)
+
+    # return train_X, train_y, test_X, test_y
+
+
+
+
+
+# ------------------------------
+# [lv1] Simple processing
 # ------------------------------
 
 # Resize & Normalize
@@ -108,7 +248,7 @@ def simple_preprocess_pipeline(img):
 
 
 # ------------------------------
-# Segmentation
+# [lv1] Segmentation
 # ------------------------------
 
 # Ensure binary image
@@ -251,13 +391,9 @@ def run_segmentation_pipeline(
 
 
 # ------------------------------
-# Dataset builder
+# [lv1] Dataset builder
 # ------------------------------
-
 SPLIT_RATIO = 0.8 # 80/20
-CHARSET = [str(d) for d in range(10)] + [chr(c) for c in range(ord('A'), ord('Z') + 1)]
-CHAR_TO_INDEX = {ch: idx for idx, ch in enumerate(CHARSET)}
-INDEX_TO_CHAR = {idx: ch for idx, ch in enumerate(CHARSET)}
 
 # Train test split
 def split_train_test(
@@ -411,7 +547,7 @@ def decode_labels(y_encoded):
 
 
 # Full pipeline
-def build_dataset_pipeline(
+def lv1_build_dataset_pipeline(
     raw_dir="dataset/lv1_1k_pbm",
     metadata_path="output/dataset/lv1_1k_pbm/meta",
     segmented_dir="output/dataset/lv1_1k_pbm/segmented",
@@ -422,6 +558,12 @@ def build_dataset_pipeline(
     that can be loaded directly for model training.
     """
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Load constants
+    load_constants(
+        charset=[str(d) for d in range(10)] + [chr(c) for c in range(ord('A'), ord('Z') + 1)]
+    )
+    print(f"[lv1](preprocessing) Charset: {len(CHARSET)} classes")
     
     # Train Test Split
     split_train_test(raw_dir, metadata_path)
@@ -443,9 +585,10 @@ def build_dataset_pipeline(
     np.savez(train_path, X=X_train, y=y_train)
     np.savez(test_path, X=X_test, y=y_test)
 
-    print(f"[Dataset Pipeline] Saved {train_path}  "
+    print(f"[lv1](preprocessing) Dataset builder pipeline")
+    print(f"Saved {train_path}  "
           f"(X={X_train.shape}, y={y_train.shape})")
-    print(f"[Dataset Pipeline] Saved {test_path}  "
+    print(f"Saved {test_path}  "
           f"(X={X_test.shape}, y={y_test.shape})")
 
     # return X_train, y_train, X_test, y_test

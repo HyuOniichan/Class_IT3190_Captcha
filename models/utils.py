@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import accuracy_score, classification_report
 
-from preprocess.utils import INDEX_TO_CHAR
+
 
 # ------------------------------
 # KNN + SVM
@@ -24,11 +24,19 @@ def flatten(X):
 # ------------------------------
 # Simple CNN
 # ------------------------------
-
-def _prepare_tensors(X, y=None):
+def _prepare_tensors(X, y=None, label_map=None):
     """Convert numpy arrays to torch tensors with proper shape/dtype."""
+    
     X_t = torch.from_numpy(X).float().unsqueeze(1) / 255.0   # (N, 1, 28, 28)
-    y_t = torch.from_numpy(y).long() if y is not None else y
+
+    if y is None:
+        return X_t, None
+
+    if label_map is not None:
+        y = np.vectorize(label_map.get)(y)
+        
+    y_t = torch.from_numpy(y).long()
+
     return X_t, y_t
 
 def _make_loader(X_t, y_t, batch_size, shuffle):

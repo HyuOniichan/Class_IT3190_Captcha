@@ -11,26 +11,27 @@ from .random_forest import ModelRandomForest
 from .svm import ModelSVM
 from .cnn import ModelCNN
 
-
-# Can chay thu voi tat cac cac tham so co the
-# Lam giong bai Model Selection (Slide L6, va collab cua tiet bai tap thu 4 tren lop)
-
-# Note hom bai tap (note.txt trong folder /bt/buoi_4)
-
 HYPER_PARAMETERS = {
     'KNN': {
         'k': list(range(1, 26)),
         'distance_fn': ["minkowski", "manhattan", "euclidean", "cosine"]
     },
     'DecisionTree': {
-        'max_depth': list(range(2, 11))
+        'max_depth': list(range(2, 21))
     },
     'RandomForest': {
         'num_trees': [5, 10, 15, 20, 30, 50, 75, 100, 150]
     },
     'SVM': {
-        'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
-        'C': [0.1, 1.0, 2.0, 5.0, 10.0]
+        'SVC': {
+            'model_type': 'SVC',
+            'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+            'C': [0.1, 1.0, 2.0, 5.0, 10.0]
+        },
+        'LinearSVC': {
+            'model_type': 'LinearSVC',
+            'C': [0.01, 0.1, 1.0, 10.0]
+        }
     },
     'CNN': {
         'optimizer': [Adam, SGD],
@@ -42,7 +43,7 @@ HYPER_PARAMETERS = {
 
 
 
-def run_knn(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/knn"):
+def run_knn(train_data, test_data, hyper_parameters, save_path):
     """Model selection for KNN"""
     
     # Init model
@@ -107,7 +108,7 @@ def run_knn(train_data, test_data, hyper_parameters, save_path="output/models/lv
 
 
 
-def run_dt(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/decision_tree"):
+def run_dt(train_data, test_data, hyper_parameters, save_path):
     """Model selection for Decision Tree"""
     
     # Init model
@@ -146,7 +147,7 @@ def run_dt(train_data, test_data, hyper_parameters, save_path="output/models/lv1
 
 
 
-def run_rf(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/random_forest"):
+def run_rf(train_data, test_data, hyper_parameters, save_path):
     """Model selection for Random Forest"""
     
     # Init model
@@ -185,7 +186,7 @@ def run_rf(train_data, test_data, hyper_parameters, save_path="output/models/lv1
 
 
     
-def run_svm(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/svm"):
+def run_svm(train_data, test_data, hyper_parameters, save_path):
     """Model selection for SVM"""
 
     # Init model
@@ -196,61 +197,65 @@ def run_svm(train_data, test_data, hyper_parameters, save_path="output/models/lv
     X_test, y_test = test_data['X'], test_data['y']
     svm_model.prepare(X_train, X_test, y_train, y_test)
     
-    # Model selection - kernel
-    accuracies_kernel = []
-    reports_kernel = []
-    
-    for kernel in hyper_parameters['kernel']:
-        _, accuracy, report = svm_model.run(kernel=kernel)
-        accuracies_kernel.append(accuracy)
-        reports_kernel.append(report)
-    
-    filename = os.path.join(save_path, "model_selection-kernel")
-    plot_accuracies(
-        X=hyper_parameters['kernel'],
-        y=accuracies_kernel,
-        X_label="Kernel",
-        y_label="Accuracy",
-        title="[Model Selection] SVM - kernel",
-        plot_type='bar',
-        save_path=filename
-    )
-    save_reports(
-        hyperparam_name='kernel',
-        hyperparam_values=hyper_parameters['kernel'],
-        reports=reports_kernel,
-        save_path=filename
-    )
-    
-    # Model selection - regularization (C)
-    accuracies_c = []
-    reports_c = []
 
-    for c in hyper_parameters['C']:
-        _, accuracy, report = svm_model.run(C=c)
-        accuracies_c.append(accuracy)
-        reports_c.append(report)
+    if hyper_parameters['model_type'] == 'SVC':
+        # Model selection - kernel (only SVC)
+        accuracies_kernel = []
+        reports_kernel = []
+        
+        for kernel in hyper_parameters['kernel']:
+            _, accuracy, report = svm_model.run(kernel=kernel, model_type=hyper_parameters['model_type'])
+            accuracies_kernel.append(accuracy)
+            reports_kernel.append(report)
+        
+        filename = os.path.join(save_path, "model_selection-kernel")
+        plot_accuracies(
+            X=hyper_parameters['kernel'],
+            y=accuracies_kernel,
+            X_label="Kernel",
+            y_label="Accuracy",
+            title="[Model Selection] SVM - kernel",
+            plot_type='bar',
+            save_path=filename
+        )
+        save_reports(
+            hyperparam_name='kernel',
+            hyperparam_values=hyper_parameters['kernel'],
+            reports=reports_kernel,
+            save_path=filename
+        )
     
-    filename = os.path.join(save_path, "model_selection-c")
-    plot_accuracies(
-        X=hyper_parameters['C'],
-        y=accuracies_c,
-        X_label="Regularization (C)",
-        y_label="Accuracy",
-        title="[Model Selection] SVM - C",
-        plot_type='line',
-        save_path=filename
-    )
-    save_reports(
-        hyperparam_name='C',
-        hyperparam_values=hyper_parameters['C'],
-        reports=reports_c,
-        save_path=filename
-    )
+    
+    if hyper_parameters['model_type'] in ['SVC', 'LinearSVC']:
+        # Model selection - regularization (C) (SVC + LinearSVC)
+        accuracies_c = []
+        reports_c = []
+
+        for c in hyper_parameters['C']:
+            _, accuracy, report = svm_model.run(C=c, model_type=hyper_parameters['model_type'])
+            accuracies_c.append(accuracy)
+            reports_c.append(report)
+        
+        filename = os.path.join(save_path, "model_selection-c")
+        plot_accuracies(
+            X=hyper_parameters['C'],
+            y=accuracies_c,
+            X_label="Regularization (C)",
+            y_label="Accuracy",
+            title="[Model Selection] SVM - C",
+            plot_type='line',
+            save_path=filename
+        )
+        save_reports(
+            hyperparam_name='C',
+            hyperparam_values=hyper_parameters['C'],
+            reports=reports_c,
+            save_path=filename
+        )
 
 
 
-def run_cnn(train_data, test_data, hyper_parameters, save_path="output/models/lv1_1k_pbm/cnn"):
+def run_cnn(train_data, test_data, hyper_parameters, save_path):
     """Model selection for CNN"""
 
     # Init model
@@ -376,12 +381,17 @@ def run_cnn(train_data, test_data, hyper_parameters, save_path="output/models/lv
 
 
 
-def models_1k_pbm(
-    data_dir="output/dataset/lv1_1k_pbm/build", 
-    output_dir="output/models/lv1_1k_pbm/"
+
+def model_selection_pipeline(
+    data_dir="output/dataset/<dataset_name>/build", 
+    output_dir="output/models/<dataset_name>/"
 ):
     """
-    Model selection on dataset "lv1_1k_pbm"
+    Model selection pipeline.
+
+    Params:
+        data_dir: Path to the Dataset directory (contains train.npz & test.npz)
+        output_dir: Path to save outputs of this pipeline
     """
     
     # Paths
@@ -389,6 +399,7 @@ def models_1k_pbm(
     dt_dir = os.path.join(output_dir, 'decision_tree')
     rf_dir = os.path.join(output_dir, 'random_forest')
     svm_dir = os.path.join(output_dir, 'svm')
+    linear_svm_dir = os.path.join(output_dir, 'linear_svm')
     cnn_dir = os.path.join(output_dir, 'cnn')
     
     os.makedirs(output_dir, exist_ok=True)
@@ -396,6 +407,7 @@ def models_1k_pbm(
     os.makedirs(dt_dir, exist_ok=True)
     os.makedirs(rf_dir, exist_ok=True)
     os.makedirs(svm_dir, exist_ok=True)
+    os.makedirs(linear_svm_dir, exist_ok=True)
     os.makedirs(cnn_dir, exist_ok=True)
     
     # Dataset
@@ -403,10 +415,11 @@ def models_1k_pbm(
     test = np.load(os.path.join(data_dir, "test.npz"))
     
     # Run model selection
-    run_knn(train, test, HYPER_PARAMETERS["KNN"])
-    run_dt(train, test, HYPER_PARAMETERS["DecisionTree"])
-    run_rf(train, test, HYPER_PARAMETERS["RandomForest"])
-    run_svm(train, test, HYPER_PARAMETERS["SVM"])
-    run_cnn(train, test, HYPER_PARAMETERS["CNN"])
+    # run_knn(train, test, HYPER_PARAMETERS["KNN"], save_path=knn_dir)
+    # run_dt(train, test, HYPER_PARAMETERS["DecisionTree"], save_path=dt_dir)
+    # run_rf(train, test, HYPER_PARAMETERS["RandomForest"], save_path=rf_dir)
+    # run_svm(train, test, HYPER_PARAMETERS["SVM"]["SVC"], save_path=svm_dir)
+    # run_svm(train, test, HYPER_PARAMETERS["SVM"]["LinearSVC"], save_path=linear_svm_dir)
+    run_cnn(train, test, HYPER_PARAMETERS["CNN"], save_path=cnn_dir)
     
 

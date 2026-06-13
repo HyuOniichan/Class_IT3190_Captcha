@@ -6,6 +6,7 @@ __pycache__/
 test.py
 
 # Dataset
+dataset/lv0_emnist/*
 dataset/lv1_1k_pbm/*
 dataset/lv1_ctt_sis/*
 dataset/lv2_1k_pbm_noise/*
@@ -15,4 +16,5 @@ dataset/lv2_1k_5digits/*
 output/*
 
 # Models
-weights/*.joblib
+weights/**/*.joblib
+weights/**/*.pth

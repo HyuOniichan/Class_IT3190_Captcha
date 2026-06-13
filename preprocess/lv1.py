@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 
-from .utils import simple_preprocess_pipeline, segmentation_pipeline, build_dataset_pipeline
+from .utils import simple_preprocess_pipeline, segmentation_pipeline, lv1_build_dataset_pipeline
 
 def preprocess_1k_pbm(
     input_dir="dataset/lv1_1k_pbm",
@@ -46,7 +46,7 @@ def preprocess_1k_pbm(
             cv2.imwrite(char_file_path, char_img)
     
     # Build dataset
-    build_dataset_pipeline(
+    lv1_build_dataset_pipeline(
         raw_dir=input_dir,
         metadata_path=meta_dir,
         segmented_dir=segmented_dir,

@@ -6,7 +6,6 @@ import torch.nn as nn
 
 from .base import ModelBaseClass
 from .utils import _prepare_tensors, _make_loader
-from preprocess.utils import INDEX_TO_CHAR
 
 class ModelCNN(ModelBaseClass):
     def __init__(self):
@@ -20,21 +19,31 @@ class ModelCNN(ModelBaseClass):
         self.batch_size = 64
         self.lr = 1e-3
         
+        self.label_to_index = None
+        self.index_to_label = None
+        
         self.criterion = nn.CrossEntropyLoss
         self.optimizer = torch.optim.Adam
         
     
     def prepare(self, X_train, X_test, y_train, y_test):
-        self.X_train, self.y_train = _prepare_tensors(X_train, y_train) 
-        self.X_test, self.y_test = _prepare_tensors(X_test, y_test) 
+        # Remap labels (CNN requires labels in range [0, n_classes-1])
+        unique_labels = np.unique(np.concatenate([y_train, y_test]))
+        self.label_to_index = {label: idx for idx, label in enumerate(unique_labels)}
+        self.index_to_label = {idx: label for idx, label in enumerate(unique_labels)}
+
+        self.num_classes = len(self.label_to_index)
+
+        self.X_train, self.y_train = _prepare_tensors(X_train, y_train, self.label_to_index) 
+        self.X_test, self.y_test = _prepare_tensors(X_test, y_test, self.label_to_index) 
     
     
     def run(
         self, criterion=nn.CrossEntropyLoss, optimizer=torch.optim.Adam, 
-        num_classes=36, epochs=20, batch_size=64, lr=1e-3, 
+        epochs=20, batch_size=64, lr=1e-3, 
         device='cpu', inplace=False
     ):
-        model = SimpleCNN(num_classes).to(device)
+        model = SimpleCNN(self.num_classes).to(device)
         model.train()
         
         train_loader = _make_loader(self.X_train, self.y_train, batch_size, shuffle=True)
@@ -107,7 +116,7 @@ class ModelCNN(ModelBaseClass):
         all_labels = np.array(all_labels)
         
         present = sorted(set(all_labels) | set(all_preds))
-        target_names = [INDEX_TO_CHAR[i] for i in present]
+        target_names = [str(self.index_to_label[i]) for i in present]
 
         accuracy = accuracy_score(all_labels, all_preds)
         report = classification_report(
@@ -120,7 +129,6 @@ class ModelCNN(ModelBaseClass):
         
         if inplace:
             self.model = model
-            self.num_classes = num_classes
             self.epochs = epochs
             self.batch_size = batch_size
             self.lr = lr
@@ -133,9 +141,23 @@ class ModelCNN(ModelBaseClass):
     
     def predict(self, X):
         input_tensor, _ = _prepare_tensors(X)
+        input_tensor = input_tensor.to(self.device)
+        self.model.eval()
+        
         probs = self.model(input_tensor)
         y_pred = probs.argmax(1)
-        return y_pred, probs
+        
+        with torch.no_grad():
+            probs = self.model(input_tensor)
+            preds_idx = probs.argmax(1).cpu().numpy()
+        
+        if self.index_to_label is not None:
+            y_pred = np.array([self.index_to_label[idx] for idx in preds_idx])
+        else:
+            print("[CNN] index_to_label is not set (run .prepare() first)")
+            y_pred = preds_idx
+            
+        return y_pred, probs.cpu().numpy()
     
     
     def save_model(self, path):

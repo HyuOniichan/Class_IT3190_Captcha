@@ -1,42 +1,57 @@
 import argparse
 import os
 
+from preprocess.lv0 import preprocess_emnist
 from preprocess.lv1 import preprocess_1k_pbm
-from models.lv1 import models_1k_pbm
+from models.model_selection import model_selection_pipeline
 
 def main():
     parser = argparse.ArgumentParser(description="Captcha processing pipeline")
     parser.add_argument(
         "--stage", type=str, required=True,
-        choices=["0", "1", "2", "3", "4", "5", "6", "7"],
+        choices=["0", "1", "2"],
         help="Choose a stage to run",
         default="0"
     )
     parser.add_argument(
         "--dataset", type=str, required=True,
-        choices=["lv1_1k_pbm", "lv1_ctt_sis", "lv2_1k_5digits", "lv2_1k_pbm_noise"],
+        choices=["lv0_emnist", "lv1_1k_pbm", "lv1_ctt_sis", "lv2_1k_5digits", "lv2_1k_pbm_noise"],
         help="Choose a dataset to run"
     )
     
     args = parser.parse_args()
     
     if args.stage == "0":
-        if args.dataset == "lv1_1k_pbm":
+        if args.dataset == "lv0_emnist":
             # Preprocessing
-            preprocess_1k_pbm()
+            preprocess_emnist()
         
             # Model selection
-            models_1k_pbm()
+            model_selection_pipeline(
+                data_dir="output/dataset/lv0_emnist/build", 
+                output_dir="output/models/lv0_emnist/"
+            )
         
+        elif args.dataset == "lv1_1k_pbm":
+            preprocess_1k_pbm()
+            model_selection_pipeline(
+                data_dir="output/dataset/lv1_1k_pbm/build", 
+                output_dir="output/models/lv1_1k_pbm/"
+            )
         
-    # Preprocessing
+    # 1. Preprocessing
     elif args.stage == "1":
+        if args.dataset == "lv0_emnist":
+            preprocess_emnist()
         if args.dataset == "lv1_1k_pbm":
             preprocess_1k_pbm()
         
+    # 2. Model selection
     elif args.stage == "2":
-        if args.dataset == "lv1_1k_pbm":
-            models_1k_pbm()
+        model_selection_pipeline(
+            data_dir=f"output/dataset/{args.dataset}/build", 
+            output_dir=f"output/models/{args.dataset}/"
+        )
     
 
 

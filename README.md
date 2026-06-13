@@ -162,8 +162,14 @@ project
     + `output/dataset` - Kết quả sau khi chạy Stage 1 (mới) - Preprocessing
     + `output/models` - Kết quả chạy Stage 2 - Model Selection
 
+  + `weights/` gồm 2 files chính:
+    + `save_models.py` - Chạy và lưu mô hình với các tham số tốt nhất (lựa chọn từ pha model selection)
+    + `load_models.py` - Chạy thử các mô hình với ảnh được lựa chọn
+    + Các mô hình được lưu tại `weights/<dataset_name>/model.joblib`
+
 
 ## Ref
 + Docs tổng: [ML 2025.2](https://docs.google.com/document/d/1g3PKIR1HZzpv9pxYNPCW63b5PtAFzVbOIYlK6n1ih1c/edit?usp=sharing)
++ Dataset lv0 (lv0_emnist): [EMNIST Dataset](https://www.kaggle.com/datasets/crawford/emnist) 
 + Dataset lv1 (lv1_1k_pbm): [CAPTCHA Dataset](https://cgi.cse.unsw.edu.au/~cs1511/17s1/assignments/captcha/captcha.html) 
 + Dataset lv2 (lv2_1k_5digits): [CAPTCHA Dataset](https://www.kaggle.com/datasets/fournierp/captcha-version-2-images)
