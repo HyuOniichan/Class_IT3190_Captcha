@@ -5,6 +5,7 @@ import joblib
 
 from preprocess.utils import simple_preprocess_pipeline
 from models.utils import flatten
+from scripts.benchmark import benchmark_model
 
 # Utils
 def load(filepath):
@@ -12,9 +13,17 @@ def load(filepath):
     model = joblib.load(filepath)
     return model
 
-def run_prediction(model_path, input):
+def run_prediction(model_path, input_tensor, transformer_path=None):
+    # Load model
     model = load(filepath=model_path)
-    pred, probs = model.predict(input)
+    
+    # Load dim reduction transformer
+    if transformer_path:
+        transformer = load(filepath=transformer_path)
+        input_tensor = transformer.transform(input_tensor)
+        print(f"Dimension reduction: {input_tensor.shape}")
+    
+    pred, probs = model.predict(input_tensor)
     print(f"Prediction: {pred} | {probs}")
 
     # For EMNIST dataset
@@ -85,8 +94,9 @@ input_tensor_cnn = input_image.reshape(1, 28, 28)
 
 
 run_prediction(
-    model_path="weights/lv0_emnist/random_forest.joblib",
-    input=input_tensor_cnn
+    model_path="weights/test/knn-pca-68_dims.joblib",
+    transformer_path="weights/test/knn-pca_transformer.joblib",
+    input_tensor=input_tensor
 )
 
 # run_lv0_cnn_prediction(input_image)

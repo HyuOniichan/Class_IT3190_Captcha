@@ -7,6 +7,8 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn.decomposition import PCA
+import joblib
 
 
 
@@ -126,5 +128,70 @@ def save_reports(hyperparam_name, hyperparam_values, reports, save_path):
                 f.write("\n\n")
         print(f"[Model Selection] Report {hyperparam_name} saved")
         
+
+
+
+
+# ------------------------------
+# Dimension Reduction
+# ------------------------------
+def apply_pca(train_data, test_data, configs, save_plot_dir=None, save_transformer_path=None):
+    """
+    Hàm đóng gói xử lý PCA.
+    Configs yêu cầu: {'variance_threshold': float} (ví dụ: 0.90)
+    """
+    variance_threshold = configs.get('variance_threshold', 0.90)
+    X_train, y_train = train_data['X'], train_data['y']
+    X_test, y_test = test_data['X'], test_data['y']
+    
+    # Đảm bảo dữ liệu phẳng (Flatten)
+    if len(X_train.shape) > 2:
+        X_train = X_train.reshape(X_train.shape[0], -1)
+        X_test = X_test.reshape(X_test.shape[0], -1)
+
+    print(f"\n[Dim Reduction] (PCA) Đang tính toán PCA cho dữ liệu gốc {X_train.shape}...")
+    
+    # 1. Khởi tạo PCA tổng thể để phân tích phương sai tích lũy
+    pca_full = PCA()
+    pca_full.fit(X_train)
+    cumulative_variance = np.cumsum(pca_full.explained_variance_ratio_)
+    
+    # Tìm số chiều tối ưu dựa trên ngưỡng threshold
+    n_components = np.argmax(cumulative_variance >= variance_threshold) + 1
+    print(f"[Dim Reduction] (PCA) Giữ lại {variance_threshold*100}% thông tin -> Cần: {n_components} chiều.")
+    
+    # 2. Vẽ và lưu đồ thị phân tích cho báo cáo
+    if save_plot_dir:
+        os.makedirs(save_plot_dir, exist_ok=True)
+        plt.figure(figsize=(8, 5))
+        plt.plot(cumulative_variance, linewidth=2, color='b')
+        plt.axhline(y=variance_threshold, color='r', linestyle='--', label=f'{variance_threshold*100}% Variance')
+        plt.axvline(x=n_components, color='g', linestyle='--', label=f'n_components = {n_components}')
+        plt.xlabel('Số lượng thành phần chính (Components)')
+        plt.ylabel('Phương sai tích lũy (Cumulative Explained Variance)')
+        plt.title('Phân tích phương sai tích lũy bằng PCA')
+        plt.legend(loc='best')
+        plt.grid(True)
+        plt.savefig(os.path.join(save_plot_dir, "pca_variance_analysis.png"), dpi=300)
+        plt.close()
+        print(f"[Dim Reduction] (PCA) Đã lưu biểu đồ phân tích tại: {save_plot_dir}/pca_variance_analysis.png")
+    
+
+    # 3. Tiến hành giảm chiều thực tế với n_components tối ưu
+    pca = PCA(n_components=n_components)
+    X_train_pca = pca.fit_transform(X_train)
+    X_test_pca = pca.transform(X_test)
+    
+    # Save the PCA transformer
+    if save_transformer_path:
+        joblib.dump(pca, save_transformer_path)
+        print(f"[Dim Reduction] (PCA) Đã lưu model PCA: {save_transformer_path}")
+    
+    # Đóng gói kết quả tương thích với cấu trúc pipeline hiện tại
+    train_reduced = {'X': X_train_pca, 'y': y_train}
+    test_reduced = {'X': X_test_pca, 'y': y_test}
+    
+    return train_reduced, test_reduced, n_components
+
 
 

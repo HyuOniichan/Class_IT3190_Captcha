@@ -1,0 +1,6 @@
+Model,      Method, Dimension,  Size (MB),  Train Time (s), Test Time (s),  
+KNN,        None,   784,        731.9225,   45.5195,        102.7192
+KNN,        PCA,    68,         64.3871,    25.325s,        52.5353
+Linear SVM, None,   784,        393.9898,   2053.5462,      0.1145
+Linear SVM, PCA,    68,         34.2909,    95.8616,        0.0214
+

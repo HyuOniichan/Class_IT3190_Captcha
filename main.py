@@ -18,6 +18,12 @@ def main():
         choices=["lv0_emnist", "lv1_1k_pbm", "lv1_ctt_sis", "lv2_1k_5digits", "lv2_1k_pbm_noise"],
         help="Choose a dataset to run"
     )
+    parser.add_argument(
+        "--dim_reduction_method", type=str, required=True,
+        choices=["pca"],
+        help="Choose a dimension reduction method",
+        default=None
+    )
     
     args = parser.parse_args()
     
@@ -50,7 +56,8 @@ def main():
     elif args.stage == "2":
         model_selection_pipeline(
             data_dir=f"output/dataset/{args.dataset}/build", 
-            output_dir=f"output/models/{args.dataset}/"
+            output_dir=f"output/models/{args.dataset}/",
+            dim_reduction_method=args.dim_reduction_method
         )
     
 

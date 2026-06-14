@@ -30,21 +30,33 @@ def count_char_distribution():
     """
     Phan phoi cac ky tu
     """
-    dataset_dir = 'dataset/lv1_1k_pbm'
+    # dataset_dir = 'dataset/lv1_1k_pbm'
+    # char_per_image = 4
+    dataset_dir = 'dataset/lv1_ctt_sis'
+    char_per_image = 5
+
     char_counts = [0 for _ in range(10)]
+    total_images = 0
     
     for filename in os.listdir(dataset_dir):
         # filename: 0008.pbm
         # name: 0008
         name = filename.split(".")[0]
         
+        # if len(name) > char_per_image:
+        #     continue
+        
         for c in name:
             idx = int(c)
             char_counts[idx] += 1
+        
+        total_images += 1
 
-    n = len(os.listdir(dataset_dir)) * 4
+    n = total_images * char_per_image
     probs = [(char_counts[i] * 100 / n) for i in range(10)]
 
+    print(f"Processed images: {total_images}/{len(os.listdir(dataset_dir))}")
+    
     for i in range(10):
         print(f"Number of char {i}: {char_counts[i]} ({probs[i]:.2f}%)")
     

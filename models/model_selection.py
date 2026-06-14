@@ -4,12 +4,14 @@ import torch
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam, SGD
 
-from .utils import plot_accuracies, save_reports
+from .utils import plot_accuracies, save_reports, apply_pca
 from .knn import ModelKNN
 from .decision_tree import ModelDecisionTree
 from .random_forest import ModelRandomForest
 from .svm import ModelSVM
 from .cnn import ModelCNN
+
+
 
 HYPER_PARAMETERS = {
     'KNN': {
@@ -38,6 +40,15 @@ HYPER_PARAMETERS = {
         'lr': [1e-2, 1e-3, 1e-4],
         'batch_size': [32, 64, 128],
         'epochs': [5, 10, 20],
+    }
+}
+
+
+
+DIM_REDUCTION_CONFIG = {
+    "pca": {
+        "func": apply_pca,
+        "variance_threshold": 0.90
     }
 }
 
@@ -384,7 +395,8 @@ def run_cnn(train_data, test_data, hyper_parameters, save_path):
 
 def model_selection_pipeline(
     data_dir="output/dataset/<dataset_name>/build", 
-    output_dir="output/models/<dataset_name>/"
+    output_dir="output/models/<dataset_name>/",
+    dim_reduction_method=None
 ):
     """
     Model selection pipeline.
@@ -394,32 +406,42 @@ def model_selection_pipeline(
         output_dir: Path to save outputs of this pipeline
     """
     
-    # Paths
-    knn_dir = os.path.join(output_dir, 'knn')
-    dt_dir = os.path.join(output_dir, 'decision_tree')
-    rf_dir = os.path.join(output_dir, 'random_forest')
-    svm_dir = os.path.join(output_dir, 'svm')
-    linear_svm_dir = os.path.join(output_dir, 'linear_svm')
-    cnn_dir = os.path.join(output_dir, 'cnn')
+    # Save paths
+    save_filenames = [
+        'test', 'dimension_reduction', 
+        'knn', 'decision_tree', 'random_forest', 
+        'svm', 'linear_svm', 'cnn'
+    ]
     
     os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(knn_dir, exist_ok=True)
-    os.makedirs(dt_dir, exist_ok=True)
-    os.makedirs(rf_dir, exist_ok=True)
-    os.makedirs(svm_dir, exist_ok=True)
-    os.makedirs(linear_svm_dir, exist_ok=True)
-    os.makedirs(cnn_dir, exist_ok=True)
+    for save_filename in save_filenames:
+        os.makedirs(os.path.join(output_dir, save_filename), exist_ok=True)
     
     # Dataset
     train = np.load(os.path.join(data_dir, "train.npz"))
     test = np.load(os.path.join(data_dir, "test.npz"))
     
+    # Dimension reduction
+    if dim_reduction_method:        
+        dim_reduction_config = DIM_REDUCTION_CONFIG[dim_reduction_method]
+        dim_reduction_func = dim_reduction_config["func"]
+
+        train, test, final_dims = dim_reduction_func(
+            train, test,
+            configs=dim_reduction_config,
+            save_plot_dir=os.path.join(output_dir, 'dimension_reduction')
+        )
+    
+    
     # Run model selection
-    # run_knn(train, test, HYPER_PARAMETERS["KNN"], save_path=knn_dir)
-    # run_dt(train, test, HYPER_PARAMETERS["DecisionTree"], save_path=dt_dir)
-    # run_rf(train, test, HYPER_PARAMETERS["RandomForest"], save_path=rf_dir)
-    # run_svm(train, test, HYPER_PARAMETERS["SVM"]["SVC"], save_path=svm_dir)
-    # run_svm(train, test, HYPER_PARAMETERS["SVM"]["LinearSVC"], save_path=linear_svm_dir)
-    run_cnn(train, test, HYPER_PARAMETERS["CNN"], save_path=cnn_dir)
+
+    # run_knn(train, test, HYPER_PARAMETERS["KNN"], save_path=os.path.join(output_dir, "knn"))
+    # run_dt(train, test, HYPER_PARAMETERS["DecisionTree"], save_path=os.path.join(output_dir, "decision_tree"))
+    # run_rf(train, test, HYPER_PARAMETERS["RandomForest"], save_path=os.path.join(output_dir, "random_forest"))
+    # run_svm(train, test, HYPER_PARAMETERS["SVM"]["SVC"], save_path=os.path.join(output_dir, "svm"))
+    # run_svm(train, test, HYPER_PARAMETERS["SVM"]["LinearSVC"], save_path=os.path.join(output_dir, "linear_svm"))
+    # run_cnn(train, test, HYPER_PARAMETERS["CNN"], save_path=os.path.join(output_dir, "cnn"))
+    
+    run_knn(train, test, HYPER_PARAMETERS["KNN"], save_path=os.path.join(output_dir, "test"))
     
 

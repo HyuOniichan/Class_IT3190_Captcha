@@ -5,6 +5,8 @@ import numpy as np
 import torch
 import joblib
 
+from models.model_selection import DIM_REDUCTION_CONFIG
+from models.utils import apply_pca
 from models.base import ModelBaseClass
 from models.knn import ModelKNN
 from models.decision_tree import ModelDecisionTree
@@ -14,8 +16,8 @@ from models.cnn import ModelCNN
 
 
 # Variables
-DATASET_NAME = "lv0_emnist"
-# DATASET_NAME = "lv1_1k_pbm"
+DATASET_NAME = "lv0_emnist"         # "lv0_emnist" | "lv1_1k_pbm"
+DIM_REDUCTION_METHOD = "pca"        # "pca"
 
 # Constants
 DATA_DIR = f"output/dataset/{DATASET_NAME}/build"
@@ -41,8 +43,17 @@ cnn_model = ModelCNN()
 # Prepare dataset
 train_data = np.load(os.path.join(DATA_DIR, "train.npz"))
 test_data = np.load(os.path.join(DATA_DIR, "test.npz"))
+
+# Dimension reduction
+train_data, test_data, final_dims = apply_pca(
+    train_data, test_data, 
+    configs=DIM_REDUCTION_CONFIG[DIM_REDUCTION_METHOD],
+    save_transformer_path=f"weights/test/knn-pca_transformer.joblib"
+)
+
 X_train, y_train = train_data['X'], train_data['y']
 X_test, y_test = test_data['X'], test_data['y']
+
 
 
 def run_pipeline(model: ModelBaseClass, save_path, **kwargs):
@@ -59,30 +70,36 @@ def run_pipeline(model: ModelBaseClass, save_path, **kwargs):
 # Params are selected depends on the model selection pipeline 
 # (script in `models/model_selection.py`, results in `output/models/<dataset_name>/`)
 
+# test
+run_pipeline(
+    knn_model, f"weights/test/knn-pca-{final_dims}_dims.joblib", 
+    k=6, distance_fn="cosine", inplace=True
+)
+
 # lv0_emnist
-run_pipeline(
-    knn_model, f"{SAVE_DIR}/knn.joblib", 
-    k=7, distance_fn="cosine", inplace=True
-)
-run_pipeline(
-    dt_model, f"{SAVE_DIR}/decision_tree.joblib", 
-    max_depth=15, inplace=True
-)
-run_pipeline(
-    rf_model, f"{SAVE_DIR}/random_forest.joblib",
-    num_trees=150, inplace=True
-)
-run_pipeline(
-    svm_model, f"{SAVE_DIR}/svm_linear.joblib",
-    C=10.0, model_type='LinearSVC', inplace=True
-)
-run_pipeline(
-    cnn_model, f"{SAVE_DIR}/cnn.joblib",
-    criterion=torch.nn.CrossEntropyLoss,
-    optimizer=torch.optim.Adam, 
-    epochs=10, batch_size=128, lr=1e-3, 
-    inplace=True
-)
+# run_pipeline(
+#     knn_model, f"{SAVE_DIR}/knn.joblib", 
+#     k=7, distance_fn="cosine", inplace=True
+# )
+# run_pipeline(
+#     dt_model, f"{SAVE_DIR}/decision_tree.joblib", 
+#     max_depth=15, inplace=True
+# )
+# run_pipeline(
+#     rf_model, f"{SAVE_DIR}/random_forest.joblib",
+#     num_trees=150, inplace=True
+# )
+# run_pipeline(
+#     svm_model, f"{SAVE_DIR}/svm_linear.joblib",
+#     C=10.0, model_type='LinearSVC', inplace=True
+# )
+# run_pipeline(
+#     cnn_model, f"{SAVE_DIR}/cnn.joblib",
+#     criterion=torch.nn.CrossEntropyLoss,
+#     optimizer=torch.optim.Adam, 
+#     epochs=10, batch_size=128, lr=1e-3, 
+#     inplace=True
+# )
 
 
 # lv1_1k_pbm
