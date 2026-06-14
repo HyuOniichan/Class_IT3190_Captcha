@@ -37,7 +37,7 @@ def run_lv0_cnn_prediction(input_image):
         else:
             state_dict = state_dict
     else:
-        raise RuntimeError(f"Fail to load weights file. Error: {e}")
+        raise RuntimeError(f"Fail to load weights file")
 
     model.load_state_dict(state_dict)
     model.eval()
