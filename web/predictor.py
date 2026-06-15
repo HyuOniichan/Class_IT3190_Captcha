@@ -1,4 +1,3 @@
-#from models.lv2.cttsis_model import img
 import os
 import numpy as np
 import cv2
@@ -6,15 +5,33 @@ import joblib
 from tensorflow import keras
 from preprocess.utils import simple_preprocess_pipeline, segmentation_pipeline
 
-# # [lv0] KNN + PCA
-# MODEL_PATH = "weights/test/knn-pca-68_dims.joblib"
-# TRANSFORMER_PATH = "weights/test/knn-pca_transformer.joblib"
-# CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"
 
-# [lv1] KNN
-MODEL_PATH = "weights/lv2/result_model.keras"
-TRANSFORMER_PATH = None
-CHARSET = "023456789"
+NAME = "lv2_sis"
+
+
+if NAME == "lv0":
+    # KNN + PCA
+    MODEL_PATH = "weights/test/knn-pca-68_dims.joblib"
+    TRANSFORMER_PATH = "weights/test/knn-pca_transformer.joblib"
+    CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabdefghnqrt"
+    
+elif NAME == "lv1":
+    # KNN
+    MODEL_PATH = "weights/lv1_1k_pbm/knn.joblib"
+    TRANSFORMER_PATH = None
+    CHARSET = "0123456789"
+    
+elif NAME == "lv2_sis":
+    # CNN
+    MODEL_PATH = "weights/lv2_ctt_sis/result_model.keras"
+    TRANSFORMER_PATH = None
+    CHARSET = "023456789"
+    
+elif NAME == "lv2_kaggle":
+    # CNN
+    MODEL_PATH = "weights/lv2_1k_5digits/result_model.h5"
+    TRANSFORMER_PATH = None
+    CHARSET = "2345678bcdefgmnpwxy"
 
 
 
@@ -42,7 +59,6 @@ class Predictor():
     def predict(self, raw_image):
         """
         Prediction pipeline.  
-        (Currently apply lv1 dataset preprocessing pipeline)
         """
         
         if raw_image is None:
@@ -66,14 +82,22 @@ class Predictor():
         gauss_img1 = cv2.GaussianBlur(dilate_img1, (1,1), 0)
         gauss_img1 = cv2.resize(gauss_img1,(200,50),interpolation=cv2.INTER_LINEAR)
 
-        segmented_chars = [
-            gauss_img1[0:50, 40:65],
-            gauss_img1[0:50, 65:90],
-            gauss_img1[0:50, 90:115],
-            gauss_img1[0:50, 115:140],
-            gauss_img1[0:50, 140:165]
-        ]
-
+        if NAME == "lv2_sis":
+            segmented_chars = [
+                gauss_img1[0:50, 40:65],
+                gauss_img1[0:50, 65:90],
+                gauss_img1[0:50, 90:115],
+                gauss_img1[0:50, 115:140],
+                gauss_img1[0:50, 140:165]
+            ]
+        elif NAME == "lv2_kaggle":
+            segmented_chars = [
+                gauss_img1[10:50, 30:50],
+                gauss_img1[10:50, 50:70],
+                gauss_img1[10:50, 70:90],
+                gauss_img1[10:50, 90:110],
+                gauss_img1[10:50, 110:130]
+            ]
 
         X_chars = np.array(segmented_chars, dtype=np.float32)
         
@@ -88,5 +112,6 @@ class Predictor():
         predicted_text = "".join([self.charset[int(idx)] for idx in predicted_ids])
         
         return predicted_text
+
 
 
