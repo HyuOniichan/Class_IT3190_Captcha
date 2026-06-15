@@ -175,6 +175,7 @@ project
           + lr: $[10^{-2}, 10^{-3}, 10^{-4}]$,
           + batch_size: $[32, 64, 128]$,
           + epochs: $[5, 10, 20]$,
+    + Các file trong thư mục `lv2` là quy trình xây dựng model để xử lý các dataset `lv2`.
 
   + `output/` sẽ chứa tất cả output của các phần sau khi
   + Github:  chạy `main.py`
