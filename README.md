@@ -123,16 +123,34 @@ project
 |-- requirements.txt
 ```
 
-+ Giải thích luồng đi:
-  + `preprocess/` sẽ gồm Stage 1, 2, 3 (Huy - cũ), 4 (Hùng Anh - cũ) gộp lại
-    + Xử lý cho từng dataset, và ghi ra output tương ứng. Ví dụ với dataset lv1 `lv1_1k_pbm` -> Output: `output/dataset/lv1_1k_pbm/...`
-    + Bắt đầu với xử lý đơn giản -> Output: folder `preprocessed/`
-    + Từ ảnh của một chuỗi số cắt thành ảnh của từng chữ cái -> Output: `segmented/`
-    + Sau khi có tập ảnh thì chia train test và ghi metadata -> Output: `meta/`
-    + Chuẩn bị dataset để sẵn sàng học -> Output: `build/`
++ Cấu trúc mã nguồn:
+  + `main.py`
+    + Là entrypoint của dự án.
+    + Chạy pipeline theo tham số:
+      + `--stage`: 0 = chạy pipeline hoàn chỉnh, 1 = chỉ tiền xử lý, 2 = chỉ lựa chọn mô hình.
+      + `--dataset`: chọn dataset dể chạy (lv0_emnist, lv1_1k_pbm, lv2_1k_5digits).
+      + `--dim_reduction_method`: hiện chỉ hỗ trợ `pca`.
+    + Với `stage=0`, nếu dataset là `lv0_emnist` hoặc `lv1_1k_pbm` thì gọi:
+      + `preprocess_emnist()` hoặc `preprocess_1k_pbm()`
+      + `model_selection_pipeline(...)`
+
+  + `preprocess/` sẽ gồm các giai đoạn tiền xử lý cho từng nhóm dataset:
+    + `utils.py` - các hàm để hỗ trợ xử lý dữ liệu
+    + `lv0.py` - pipeline hoàn chỉnh để xử lý dữ liệu cho dataset lv0
+    + `lv1.py` - pipeline xử lý dữ liệu cho dataset lv1 
+    + Xử lý cho từng dataset, và ghi ra output tương ứng. 
+    + Ví dụ: Với dataset lv1 `lv1_1k_pbm` -> Output lưu tại: `output/dataset/lv1_1k_pbm/`
+      + Bắt đầu với xử lý đơn giản -> Output: folder `preprocessed/`
+      + Từ ảnh của một chuỗi số cắt thành ảnh của từng chữ cái -> Output: `segmented/`
+      + Sau khi có tập ảnh thì chia train test và ghi metadata -> Output: `meta/`
+      + Chuẩn bị dataset để sẵn sàng học -> Output: `build/`
   
-  + `models/` sẽ tham khảo Stage 5 (Hùng Anh - cũ), và bổ sung thêm phần **Model Selection** và các mô hình học máy khác
-    + Gồm các models tương ứng, load data từ folder `build/`:
+  + `models/` tương ứng với giai đoạn **Model Selection**
+    + Gồm các mô hình Học máy, load train/test data từ folder `build/`.
+    + Khởi tạo class chung `BaseModelClass` (`base.py`), gồm các method chính:
+      + `prepare()` - Chuẩn bị train/test dataset cho model
+      + `run()` - Khởi tạo và chạy (huấn luyện) model bằng cách truyền các tham số yêu cầu của model vào, có thể lưu lại model.
+      + `predict()` - Sử dụng model đã lưu để dự đoán giá trị cho ảnh đầu vào, trả về nhãn dự đoán và xác suất cho từng lớp (confidence).
     + Chuẩn bị class cho model và các siêu tham số tương ứng:
       + `knn.py` - KNN
         + k: range $[1, 25]$
@@ -142,7 +160,7 @@ project
         + max_depth: $[2, 10]$
       + `random_forest.py` - Random Forest
         + n_estimators: $[5, 10, 15, 20, 30, 50, 75, 100, 150]$
-      + `svm.py` - SVM
+      + `svm.py` - SVM / LinearSVM
         + kernel: ["linear", "poly", "rbf", "sigmoid"]
         + C: $[0.1, 1.0, 2.0, 5.0, 10.0]$
       + `cnn.py` - CNN
@@ -158,18 +176,27 @@ project
           + batch_size: $[32, 64, 128]$,
           + epochs: $[5, 10, 20]$,
 
-  + `output/` sẽ chứa tất cả output của các phần sau khi chạy `main.py`
+  + `output/` sẽ chứa tất cả output của các phần sau khi
+  + Github:  chạy `main.py`
     + `output/dataset` - Kết quả sau khi chạy Stage 1 (mới) - Preprocessing
     + `output/models` - Kết quả chạy Stage 2 - Model Selection
 
   + `weights/` gồm 2 files chính:
     + `save_models.py` - Chạy và lưu mô hình với các tham số tốt nhất (lựa chọn từ pha model selection)
     + `load_models.py` - Chạy thử các mô hình với ảnh được lựa chọn
-    + Các mô hình được lưu tại `weights/<dataset_name>/model.joblib`
+    + Các mô hình được lưu tại `weights/<dataset_name>/<model_name>.joblib`
+
+  + `scripts` tập hợp các file phụ để đo số liệu báo cáo, ví dụ như `benchmark.py` để đo dung lượng và thời gian chạy mô hình.
+
+  + `web` chứa mã nguồn để chạy giao diện web:\
+    + `index.html`, `style.css`, `script.js` để tạo giao diện web
+    + `app.py` - file chính để khởi động server backend 
+    + `predictor.py` - khởi tạo và lựa chọn mô hình dự đoán
 
 
 ## Ref
 + Docs tổng: [ML 2025.2](https://docs.google.com/document/d/1g3PKIR1HZzpv9pxYNPCW63b5PtAFzVbOIYlK6n1ih1c/edit?usp=sharing)
++ Github: [Class_IT3190_Captcha](https://github.com/HyuOniichan/Class_IT3190_Captcha/)
 + Dataset lv0 (lv0_emnist): [EMNIST Dataset](https://www.kaggle.com/datasets/crawford/emnist) 
 + Dataset lv1 (lv1_1k_pbm): [CAPTCHA Dataset](https://cgi.cse.unsw.edu.au/~cs1511/17s1/assignments/captcha/captcha.html) 
 + Dataset lv2 (lv2_1k_5digits): [CAPTCHA Dataset](https://www.kaggle.com/datasets/fournierp/captcha-version-2-images)
