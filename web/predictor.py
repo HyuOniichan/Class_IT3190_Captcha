@@ -37,7 +37,7 @@ elif NAME == "lv2_kaggle":
 
 class Predictor():
     def __init__(
-        self, 
+        self,
         model_path: str = MODEL_PATH, 
         transformer_path: str = TRANSFORMER_PATH, 
         charset: str = CHARSET
@@ -50,10 +50,20 @@ class Predictor():
 
     
     def setup(self, model_path, transformer_path):
-        if model_path:
-            self.model = keras.models.load_model(model_path)
-        if transformer_path:
+        if NAME == "lv0":
+            self.model = joblib.load(model_path)
             self.transformer = joblib.load(transformer_path)
+        elif NAME == "lv1":
+            self.model = joblib.load(model_path)
+        elif NAME == "lv2_sis":
+            self.model = keras.models.load_model(model_path)
+        elif NAME == "lv2_kaggle":
+            self.model = keras.models.load_model(model_path)
+        
+        # if model_path:
+        #     self.model = keras.models.load_model(model_path)
+        # if transformer_path:
+        #     self.transformer = joblib.load(transformer_path)
     
     
     def predict(self, raw_image):
@@ -75,14 +85,39 @@ class Predictor():
         else:
             img_cv2 = img_np
 
-        thresh_img1 = cv2.adaptiveThreshold(img_cv2, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 145, 0)
-        thresh_img1 = ~thresh_img1
-        close_img1 = cv2.morphologyEx(thresh_img1, cv2.MORPH_CLOSE, np.ones((5,2), np.uint8))
-        dilate_img1 = cv2.dilate(close_img1, np.ones((2,2), np.uint8), iterations = 1)
-        gauss_img1 = cv2.GaussianBlur(dilate_img1, (1,1), 0)
-        gauss_img1 = cv2.resize(gauss_img1,(200,50),interpolation=cv2.INTER_LINEAR)
+        if NAME == "lv0":
+            # segmented_chars = [img_cv2]
+            processed_img = simple_preprocess_pipeline(img_cv2)
+            segmented_chars = segmentation_pipeline(processed_img)
 
-        if NAME == "lv2_sis":
+            # (28x28) -> (N, 28, 28)
+            X_chars = np.array(segmented_chars, dtype=np.uint8)
+            
+            # Flatten -> (N, 784)
+            X_chars = X_chars.reshape(X_chars.shape[0], -1)
+
+            # Dimension reduction -> (N, m), m < 784
+            X_chars = self.transformer.transform(X_chars)
+            
+            # Prediction
+            predicted_ids, _ = self.model.predict(X_chars)
+        
+        elif NAME == "lv1":
+            processed_img = simple_preprocess_pipeline(img_cv2)
+            segmented_chars = segmentation_pipeline(processed_img)
+
+            X_chars = np.array(segmented_chars, dtype=np.uint8)
+            X_chars = X_chars.reshape(X_chars.shape[0], -1)
+            predicted_ids, _ = self.model.predict(X_chars)
+            
+        elif NAME == "lv2_sis":
+            thresh_img1 = cv2.adaptiveThreshold(img_cv2, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 145, 0)
+            thresh_img1 = ~thresh_img1
+            close_img1 = cv2.morphologyEx(thresh_img1, cv2.MORPH_CLOSE, np.ones((5,2), np.uint8))
+            dilate_img1 = cv2.dilate(close_img1, np.ones((2,2), np.uint8), iterations = 1)
+            gauss_img1 = cv2.GaussianBlur(dilate_img1, (1,1), 0)
+            gauss_img1 = cv2.resize(gauss_img1,(200,50),interpolation=cv2.INTER_LINEAR)
+            
             segmented_chars = [
                 gauss_img1[0:50, 40:65],
                 gauss_img1[0:50, 65:90],
@@ -90,7 +125,22 @@ class Predictor():
                 gauss_img1[0:50, 115:140],
                 gauss_img1[0:50, 140:165]
             ]
+            
+            X_chars = np.array(segmented_chars, dtype=np.float32)
+            X_chars = np.expand_dims(X_chars, axis=-1)
+            X_chars /= 255.0
+            
+            ydemo = self.model.predict(X_chars)
+            predicted_ids = np.argmax(ydemo, axis=1)
+        
         elif NAME == "lv2_kaggle":
+            thresh_img1 = cv2.adaptiveThreshold(img_cv2, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 145, 0)
+            thresh_img1 = ~thresh_img1
+            close_img1 = cv2.morphologyEx(thresh_img1, cv2.MORPH_CLOSE, np.ones((5,2), np.uint8))
+            dilate_img1 = cv2.dilate(close_img1, np.ones((2,2), np.uint8), iterations = 1)
+            gauss_img1 = cv2.GaussianBlur(dilate_img1, (1,1), 0)
+            gauss_img1 = cv2.resize(gauss_img1,(200,50),interpolation=cv2.INTER_LINEAR)
+            
             segmented_chars = [
                 gauss_img1[10:50, 30:50],
                 gauss_img1[10:50, 50:70],
@@ -98,16 +148,13 @@ class Predictor():
                 gauss_img1[10:50, 90:110],
                 gauss_img1[10:50, 110:130]
             ]
-
-        X_chars = np.array(segmented_chars, dtype=np.float32)
-        
-        X_chars = np.expand_dims(X_chars, axis=-1)
-        
-        X_chars /= 255.0
-        
-        ydemo = self.model.predict(X_chars)
-        
-        predicted_ids = np.argmax(ydemo, axis=1)
+            
+            X_chars = np.array(segmented_chars, dtype=np.float32)
+            X_chars = np.expand_dims(X_chars, axis=-1)
+            X_chars /= 255.0
+            
+            ydemo = self.model.predict(X_chars)
+            predicted_ids = np.argmax(ydemo, axis=1)
 
         predicted_text = "".join([self.charset[int(idx)] for idx in predicted_ids])
         
