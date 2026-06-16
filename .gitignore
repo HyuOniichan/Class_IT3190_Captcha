@@ -18,3 +18,5 @@ output/*
 # Models
 weights/**/*.joblib
 weights/**/*.pth
+weights/**/*.keras
+weights/**/*.h5
